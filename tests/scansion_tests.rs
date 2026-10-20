@@ -1,4 +1,4 @@
-use joaju_lirica::{escandir_verso, parse_lirica_block, PoemaConfig};
+use joaju_lirica::{escandir_verso, parse_lirica_block};
 
 #[test]
 fn test_camoes_decassilabo_heroico() {
@@ -24,12 +24,20 @@ fn test_camoes_decassilabo_heroico() {
 #[test]
 fn test_hiatos_deterministas_sem_acento_vs_com_acento() {
     let esc_poesia = escandir_verso("poesia");
-    let textos_poesia: Vec<&str> = esc_poesia.silabas.iter().map(|s| s.texto.as_str()).collect();
+    let textos_poesia: Vec<&str> = esc_poesia
+        .silabas
+        .iter()
+        .map(|s| s.texto.as_str())
+        .collect();
     assert_eq!(textos_poesia, vec!["po", "e", "si", "a"]);
     assert_eq!(esc_poesia.total_metricas, 3); // Castilho stops at "si"
 
     let esc_historia = escandir_verso("história");
-    let textos_historia: Vec<&str> = esc_historia.silabas.iter().map(|s| s.texto.as_str()).collect();
+    let textos_historia: Vec<&str> = esc_historia
+        .silabas
+        .iter()
+        .map(|s| s.texto.as_str())
+        .collect();
     assert_eq!(textos_historia, vec!["his", "tó", "ria"]);
     assert_eq!(esc_historia.total_metricas, 2); // Castilho stops at "tó"
 
@@ -41,13 +49,18 @@ fn test_hiatos_deterministas_sem_acento_vs_com_acento() {
 
 #[test]
 fn test_pontuacao_bloqueia_sinalefa() {
-    let verso_virgula = "Amor, ardente sem se ver";
+    let verso_virgula = "Fogo, ardente sem se ver";
     let esc = escandir_verso(verso_virgula);
 
-    // "Amor," ends with comma, so it should not merge with "ar"
-    let fusoes: Vec<&str> = esc.silabas.iter().filter(|s| s.fusao).map(|s| s.texto.as_str()).collect();
+    // "Fogo," ends with comma, so it should not merge with "ar"
+    let fusoes: Vec<&str> = esc
+        .silabas
+        .iter()
+        .filter(|s| s.fusao)
+        .map(|s| s.texto.as_str())
+        .collect();
     assert!(
-        !fusoes.iter().any(|s| s.contains("mor_ar")),
+        !fusoes.iter().any(|s| s.contains("go_ar")),
         "Comma should block sinalefa"
     );
 }
@@ -85,7 +98,7 @@ fn test_parse_bloco_lirica_com_diretivas() {
 %% metro = decassilabo
 %% elidir_pontuacao = true
 
-Amor, ardente sem se ver
+Fogo, ardente sem se ver
 "#;
 
     let (config, poem) = parse_lirica_block(bloco).expect("Failed to parse block");
@@ -93,6 +106,9 @@ Amor, ardente sem se ver
     assert_eq!(config.metro_alvo.as_deref(), Some("decassilabo"));
     assert!(config.elidir_pontuacao);
     assert_eq!(poem.versos.len(), 1);
-    // With elidir_pontuacao = true, the comma does NOT block sinalefa:
-    assert!(poem.versos[0].silabas.iter().any(|s| s.fusao));
+    // With elidir_pontuacao = true, the comma does NOT block sinalefa between "go" and "ar":
+    assert!(poem.versos[0]
+        .silabas
+        .iter()
+        .any(|s| s.fusao && s.texto.contains("go_ar")));
 }
