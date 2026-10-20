@@ -112,3 +112,57 @@ Fogo, ardente sem se ver
         .iter()
         .any(|s| s.fusao && s.texto.contains("go_ar")));
 }
+
+#[test]
+fn test_redondilha_maior_goncalves_dias() {
+    // "Minha terra tem palmeiras" -> Mi-nha ter-ra tem pal-mei-(ras) = 7 syllables
+    let verso = "Minha terra tem palmeiras";
+    let esc = escandir_verso(verso);
+    assert_eq!(esc.total_metricas, 7);
+    assert_eq!(esc.classificacao.as_deref(), Some("Redondilha Maior"));
+}
+
+#[test]
+fn test_monossilabos_atonos_vs_tonicos() {
+    let verso = "O sol brilha no mar";
+    let esc = escandir_verso(verso);
+    // 'O' atonic, 'sol' tonic, 'bri' tonic, 'lha' atonic, 'no' atonic, 'mar' tonic
+    assert!(esc.esquema_tonico.contains(&2)); // sol
+    assert!(esc.esquema_tonico.contains(&3)); // bri
+    assert!(esc.esquema_tonico.contains(&6)); // mar
+}
+
+#[test]
+fn test_render_painel_e_typst() {
+    use joaju_lirica::{render_painel, render_typst};
+
+    let bloco = r#"%% titulo = Canção do Exílio
+%% autor = Gonçalves Dias
+%% metro = redondilha_maior
+
+Minha terra tem palmeiras
+Onde canta o Sabiá
+"#;
+
+    let (config, poem) = parse_lirica_block(bloco).unwrap();
+    let painel = render_painel(&poem);
+    assert!(painel.contains("Minha terra tem palmeiras"));
+    assert!(painel.contains("Redondilha Maior"));
+
+    let typst = render_typst(&config, &poem);
+    assert!(typst.contains("== Canção do Exílio"));
+    assert!(typst.contains("_por Gonçalves Dias_"));
+    assert!(typst.contains("#grid"));
+}
+
+#[test]
+fn test_edge_cases_espacos_e_pontuacao() {
+    let vazio = escandir_verso("");
+    assert_eq!(vazio.total_metricas, 0);
+
+    let so_espacos = escandir_verso("   \t  \n  ");
+    assert_eq!(so_espacos.total_metricas, 0);
+
+    let so_pontuacao = escandir_verso("... !? —");
+    assert_eq!(so_pontuacao.total_metricas, 0);
+}
