@@ -1,0 +1,35 @@
+[package]
+name = "joaju-lirica"
+version = "0.1.0"
+edition = "2021"
+description = "Deterministic poetic scansion and rhythm analysis engine in Rust for Portuguese verse"
+license = "Apache-2.0"
+repository = "https://codeberg.org/lumenpink/joaju-lirica"
+homepage = "https://codeberg.org/lumenpink/joaju-lirica"
+documentation = "https://docs.rs/joaju-lirica"
+readme = "README.md"
+keywords = ["poetry", "scansion", "rhythm", "typst", "linguistics"]
+categories = ["text-processing", "parsing", "command-line-utilities"]
+authors = ["Lumen Pink <hi@lumen.pink>"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+thiserror = "2.0"
+clap = { version = "4.5", features = ["derive"], optional = true }
+
+[dev-dependencies]
+
+[features]
+default = ["cli", "serde"]
+cli = ["dep:clap", "dep:serde", "dep:serde_json"]
+serde = ["dep:serde", "dep:serde_json"]
+
+[[bin]]
+name = "joaju-lirica"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[lib]
+name = "joaju_lirica"
+path = "src/lib.rs"
