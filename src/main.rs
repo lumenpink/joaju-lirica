@@ -20,7 +20,7 @@ struct Cli {
     json: bool,
 
     /// Output format as Typst code
-    #[arg(short, long)]
+    #[arg(long)]
     typst: bool,
 }
 
