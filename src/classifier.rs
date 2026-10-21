@@ -19,9 +19,10 @@ pub fn classificar_ritmo(total_metricas: usize, esquema_tonico: &[usize]) -> Opt
         10 => {
             if esquema_tonico.contains(&6) && esquema_tonico.contains(&10) {
                 "Decassílabo Heroico"
-            } else if esquema_tonico.contains(&4)
+            } else if (esquema_tonico.contains(&4)
                 && esquema_tonico.contains(&8)
-                && esquema_tonico.contains(&10)
+                && esquema_tonico.contains(&10))
+                || (esquema_tonico.contains(&4) && esquema_tonico.contains(&10))
             {
                 "Decassílabo Sáfico"
             } else if esquema_tonico.contains(&3)
@@ -41,8 +42,26 @@ pub fn classificar_ritmo(total_metricas: usize, esquema_tonico: &[usize]) -> Opt
                 "Dodecassílabo"
             }
         }
-        _ => "Verso Bárbaro",
+        _ => "Forma Livre",
     };
 
     Some(class.to_string())
+}
+
+/// Returns a distinctive Unicode icon for a given metric classification.
+pub fn icone_metro(classificacao: &str) -> &'static str {
+    match classificacao {
+        "Decassílabo Heroico" => "⚔️",
+        "Decassílabo Sáfico" => "🏛️",
+        "Decassílabo Martelo" => "🔨",
+        "Decassílabo" => "📜",
+        "Redondilha Maior" => "🌿",
+        "Redondilha Menor" => "🍃",
+        "Alexandrino Clássico" => "👑",
+        "Dodecassílabo" => "⚜️",
+        "Octossílabo" => "🎵",
+        "Eneassílabo" => "🌊",
+        "Hendecassílabo" => "🕊️",
+        _ => "🪶",
+    }
 }

@@ -34,6 +34,10 @@ pub struct EscansaoVerso {
     pub esquema_tonico: Vec<usize>,
     /// Identified poetic rhythm or meter (e.g. "Decassílabo Heroico").
     pub classificacao: Option<String>,
+    /// Scheme rhyme letter if analyzed (e.g. "A", "B").
+    pub rima: Option<String>,
+    /// Rhyme termination phonemes (e.g. "-er", "-ente").
+    pub rima_terminacao: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,7 +62,7 @@ pub fn escandir_verso_com_opcoes(
     let mut i = 0;
 
     while i < n {
-        // Skip leading whitespace
+        // 1. Skip leading whitespace
         while i < n {
             let c = linha[i..].chars().next().unwrap();
             if !c.is_whitespace() {
@@ -70,31 +74,57 @@ pub fn escandir_verso_com_opcoes(
             break;
         }
 
-        // Collect word characters (alphabetic, '/', or '-')
+        // 2. Standalone '/' between words forces hiatus on the preceding syllable
+        let c_char = linha[i..].chars().next().unwrap();
+        if c_char == '/' {
+            if let Some(last) = silabas_brutas.last_mut() {
+                last.bloqueia_sinalefa = true;
+                last.forcar_sinalefa_proxima = false;
+            }
+            i += c_char.len_utf8();
+            continue;
+        }
+
+        // 3. Collect word characters (alphabetic, '\'', or internal '/')
         let inicio_palavra = i;
         while i < n {
             let c = linha[i..].chars().next().unwrap();
-            if !c.is_alphabetic() && c != '/' && c != '-' {
+            if c.is_alphabetic() || c == '\'' || c == '-' {
+                i += c.len_utf8();
+            } else if c == '/'
+                && i + 1 < n
+                && linha[i + 1..]
+                    .chars()
+                    .next()
+                    .is_some_and(|nc| nc.is_alphabetic())
+            {
+                // Internal '/' between letters in a word (e.g. sa/úva)
+                i += c.len_utf8();
+            } else {
                 break;
             }
-            i += c.len_utf8();
         }
         let fim_palavra = i;
         let fatia_palavra = &linha[inicio_palavra..fim_palavra];
 
-        // Inspect following characters for punctuation / underscores
+        // 4. Inspect following characters for punctuation, underscores, or slashes
         let mut bloqueia_sinalefa = false;
         let mut forcar_sinalefa = false;
         let mut j = fim_palavra;
         while j < n {
             let c = linha[j..].chars().next().unwrap();
-            if c.is_alphabetic() || c == '/' {
+            if c.is_alphabetic() {
                 break;
             }
-            if c == '_' {
+            if c == '/' {
+                bloqueia_sinalefa = true;
+                forcar_sinalefa = false;
+            } else if c == '_' {
                 forcar_sinalefa = true;
-            }
-            if matches!(c, ',' | ';' | '.' | ':' | '!' | '?' | '—' | ')') && !elidir_pontuacao {
+                bloqueia_sinalefa = false;
+            } else if matches!(c, ',' | ';' | '.' | ':' | '!' | '?' | '—' | ')')
+                && !elidir_pontuacao
+            {
                 bloqueia_sinalefa = true;
             }
             j += c.len_utf8();
@@ -108,8 +138,9 @@ pub fn escandir_verso_com_opcoes(
 
             for (idx, (texto_sil, span_sil)) in sils.into_iter().enumerate() {
                 let eh_fim = idx + 1 == total_sils;
+                let texto_limpo: String = texto_sil.chars().filter(|&c| c != '\'').collect();
                 silabas_brutas.push(SilabaBruta {
-                    texto: texto_sil,
+                    texto: texto_limpo,
                     span: span_sil,
                     tonica: idx_tonica == Some(idx),
                     fim_de_palavra: eh_fim,
@@ -138,8 +169,8 @@ pub fn escandir_verso_com_opcoes(
             let comeca_som_vocalico = p1.is_some_and(is_vowel)
                 || (matches!(p1, Some('h' | 'H')) && p2.is_some_and(is_vowel));
 
-            // Vogal tônica final (oxítona ou monossílabo tônico) não forma sinalefa
-            // com a vogal seguinte (hiato obrigatório), a menos que explicitamente forçada com '_'.
+            // Vogais tônicas finais (oxítonas e monossílabos tônicos) impõem hiato obrigatório,
+            // a não ser que haja forçamento explícito de sinalefa com '_'.
             let pode_fundir = (atual.fim_de_palavra
                 && !atual.bloqueia_sinalefa
                 && termina_vogal
@@ -179,24 +210,30 @@ pub fn escandir_verso_com_opcoes(
     if contagem_castilho {
         let ultima_tonica_idx = silabas_poeticas.iter().rposition(|s| s.tonica);
         if let Some(ult_idx) = ultima_tonica_idx {
-            total_metricas = ult_idx + 1;
-            for (i, sil) in silabas_poeticas.iter_mut().enumerate() {
+            for (i, s) in silabas_poeticas.iter_mut().enumerate() {
                 if i <= ult_idx {
-                    let num = i + 1;
-                    sil.numero_metrico = Some(num);
-                    if sil.tonica {
-                        esquema_tonico.push(num);
+                    total_metricas += 1;
+                    s.numero_metrico = Some(total_metricas);
+                    if s.tonica {
+                        esquema_tonico.push(total_metricas);
                     }
+                } else {
+                    s.numero_metrico = None;
                 }
+            }
+        } else {
+            // No tonic found, count all
+            for s in &mut silabas_poeticas {
+                total_metricas += 1;
+                s.numero_metrico = Some(total_metricas);
             }
         }
     } else {
-        total_metricas = silabas_poeticas.len();
-        for (i, sil) in silabas_poeticas.iter_mut().enumerate() {
-            let num = i + 1;
-            sil.numero_metrico = Some(num);
-            if sil.tonica {
-                esquema_tonico.push(num);
+        for s in &mut silabas_poeticas {
+            total_metricas += 1;
+            s.numero_metrico = Some(total_metricas);
+            if s.tonica {
+                esquema_tonico.push(total_metricas);
             }
         }
     }
@@ -208,10 +245,12 @@ pub fn escandir_verso_com_opcoes(
         total_metricas,
         esquema_tonico,
         classificacao,
+        rima: None,
+        rima_terminacao: None,
     }
 }
 
-/// Scans a single line/verse using standard classical defaults (Castilho rule, cesura on punctuation).
+/// Scans a single line/verse using standard default options.
 pub fn escandir_verso(linha: &str) -> EscansaoVerso {
     escandir_verso_com_opcoes(linha, false, false, true)
 }

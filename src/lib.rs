@@ -1,41 +1,14 @@
 //! # joaju-lirica
 //!
 //! A fast, deterministic Rust library for Portuguese poetic scansion, rhythm analysis,
-//! and metric classification.
-//!
-//! > ⚠️ **Early Development Notice (pre-1.0 / alpha)**: This library is currently in early
-//! > active development (`0.1.0`). APIs are subject to change prior to a stable release.
-//!
-//! ## Features
-//! - **Phonotactic Syllabification**: Exact UTF-8 byte span preservation (`Range<usize>`)
-//!   for editor integrations (Ratatui, egui, Dioxus, Neovim extmarks).
-//! - **Lexical & Poetic Stress**: Automatic detection of acute/circumflex accents, tildes,
-//!   atonic clitics, and paroxytone/oxytone endings.
-//! - **Poetic Elision (Sinalefa)**: Classical vowel merging across word boundaries respecting
-//!   punctuation cesura.
-//! - **Metric Truncation (Castilho Rule)**: Automatic metric syllable numbering ending at
-//!   the verse's final tonic syllable.
-//! - **Manual Overrides**: Inline `/` (forced hiatus/dieresis) and `_` (forced elision).
-//! - **Joaju Code Block Integration**: Supports ````lirica code blocks with `%%` configuration
-//!   directives (`%% metro`, `%% elidir_pontuacao`, `%% dierese_crescente`, `%% saida`).
-//!
-//! ## Quick Example
-//!
-//! ```rust
-//! use joaju_lirica::escandir_verso;
-//!
-//! let verso = "Amor é fogo que arde sem se ver";
-//! let escansao = escandir_verso(verso);
-//!
-//! assert_eq!(escansao.total_metricas, 10);
-//! assert_eq!(escansao.classificacao.as_deref(), Some("Decassílabo Heroico"));
-//! ```
+//! metric classification, and rhyme schemes.
 
 #![warn(missing_docs)]
 
 pub mod block;
 pub mod classifier;
 pub mod phonotactics;
+pub mod rhyme;
 pub mod scansion;
 pub mod syllabary;
 pub mod tonic;
@@ -43,10 +16,57 @@ pub mod tonic;
 pub use block::{
     parse_lirica_block, render_painel, render_typst, LiricaError, ModoSaida, Poema, PoemaConfig,
 };
-pub use classifier::classificar_ritmo;
+pub use classifier::{classificar_ritmo, icone_metro};
+pub use rhyme::{analisar_esquema_rimas, extrair_terminacao_rima, InfoRima};
 pub use scansion::{escandir_verso, escandir_verso_com_opcoes, EscansaoVerso, SilabaPoetica};
 pub use syllabary::separar_silabas_com_spans;
 pub use tonic::descobrir_tonica;
+
+/// Scans a multi-line poem text block with full options, automatically executing scansion
+/// and rhyme detection across all verses.
+pub fn escandir_poema(
+    texto: &str,
+    elidir_pontuacao: bool,
+    dierese_crescente: bool,
+    contagem_castilho: bool,
+    analisar_rima: bool,
+) -> Poema {
+    let mut linhas = Vec::new();
+    let mut versos = Vec::new();
+
+    for linha in texto.lines() {
+        let trimmed = linha.trim();
+        if !trimmed.is_empty() && !trimmed.starts_with("%%") {
+            let esc = escandir_verso_com_opcoes(
+                linha,
+                elidir_pontuacao,
+                dierese_crescente,
+                contagem_castilho,
+            );
+            versos.push(esc);
+            linhas.push(linha.to_string());
+        }
+    }
+
+    let mut poema = Poema {
+        versos,
+        linhas_originais: linhas.clone(),
+        esquema_rima: None,
+    };
+
+    if analisar_rima && !linhas.is_empty() {
+        let (info_rimas, esquema) = analisar_esquema_rimas(&linhas);
+        poema.esquema_rima = esquema;
+        for (v, rima_opt) in poema.versos.iter_mut().zip(info_rimas) {
+            if let Some(r) = rima_opt {
+                v.rima = Some(r.letra);
+                v.rima_terminacao = Some(r.terminacao);
+            }
+        }
+    }
+
+    poema
+}
 
 /// Module version identifier.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

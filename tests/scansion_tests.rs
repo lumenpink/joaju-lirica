@@ -194,3 +194,86 @@ fn test_edge_cases_espacos_e_pontuacao() {
     let so_pontuacao = escandir_verso("... !? —");
     assert_eq!(so_pontuacao.total_metricas, 0);
 }
+
+#[test]
+fn test_forcar_hiato_entre_palavras() {
+    // Sem barra: elide naturalmente ("que_ar" é a única métrica sob Castilho)
+    let com_elisao = escandir_verso("que arde");
+    assert!(
+        com_elisao.silabas.iter().any(|s| s.fusao),
+        "Sem barra deve haver sinalefa"
+    );
+    assert_eq!(com_elisao.total_metricas, 1);
+
+    // Com barra entre palavras: forçar hiato impede elisão ("que" = 1, "ar" = 2)
+    let hiato_espacos = escandir_verso("que / arde");
+    assert!(
+        !hiato_espacos.silabas.iter().any(|s| s.fusao),
+        "'que / arde' deve forçar hiato"
+    );
+    assert_eq!(hiato_espacos.total_metricas, 2);
+
+    let hiato_colado_esq = escandir_verso("que/ arde");
+    assert!(
+        !hiato_colado_esq.silabas.iter().any(|s| s.fusao),
+        "'que/ arde' deve forçar hiato"
+    );
+    assert_eq!(hiato_colado_esq.total_metricas, 2);
+
+    let hiato_colado_dir = escandir_verso("que /arde");
+    assert!(
+        !hiato_colado_dir.silabas.iter().any(|s| s.fusao),
+        "'que /arde' deve forçar hiato"
+    );
+    assert_eq!(hiato_colado_dir.total_metricas, 2);
+}
+
+#[test]
+fn test_mudanca_manual_de_tonica() {
+    // 'que' é normalmente átono
+    let que_normal = escandir_verso("que");
+    assert_eq!(que_normal.esquema_tonico.len(), 0);
+
+    // 'que'' com apóstrofo vira tônico
+    let que_tonico = escandir_verso("que'");
+    assert_eq!(que_tonico.esquema_tonico, vec![1]);
+
+    // 'fogo' é paroxítona natural: [fo]-go
+    let fogo_normal = escandir_verso("fogo");
+    assert_eq!(fogo_normal.esquema_tonico, vec![1]);
+
+    // 'fogo'' com apóstrofo na última sílaba vira oxítona: fo-[go]
+    let fogo_oxitona = escandir_verso("fogo'");
+    assert_eq!(fogo_oxitona.esquema_tonico, vec![2]);
+
+    // Sendo oxítona, a tônica final bloqueia elisão seguinte e recalcula o verso
+    let verso_oxitona = escandir_verso("fogo' arde");
+    assert!(
+        !verso_oxitona.silabas.iter().any(|s| s.fusao),
+        "fogo' oxítona não deve elidir com arde"
+    );
+}
+
+#[test]
+fn test_analise_rimas_e_icones() {
+    use joaju_lirica::{analisar_esquema_rimas, icone_metro};
+
+    let linhas = vec![
+        "Amor é fogo que arde sem se ver,".to_string(),
+        "É ferida que dói e não se sente;".to_string(),
+        "É um contentamento descontente,".to_string(),
+        "É dor que desatina sem doer.".to_string(),
+    ];
+
+    let (rimas, esquema) = analisar_esquema_rimas(&linhas);
+    assert_eq!(esquema.as_deref(), Some("ABBA"));
+    assert_eq!(rimas[0].as_ref().unwrap().letra, "A");
+    assert_eq!(rimas[1].as_ref().unwrap().letra, "B");
+    assert_eq!(rimas[2].as_ref().unwrap().letra, "B");
+    assert_eq!(rimas[3].as_ref().unwrap().letra, "A");
+
+    assert_eq!(icone_metro("Decassílabo Heroico"), "⚔️");
+    assert_eq!(icone_metro("Decassílabo Sáfico"), "🏛️");
+    assert_eq!(icone_metro("Redondilha Maior"), "🌿");
+    assert_eq!(icone_metro("Alexandrino Clássico"), "👑");
+}

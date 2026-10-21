@@ -1,5 +1,6 @@
 //! Parser for `lirica` code blocks and `%%` directives with dual-panel and Typst renderers.
 
+use crate::rhyme::analisar_esquema_rimas;
 use crate::scansion::{escandir_verso_com_opcoes, EscansaoVerso};
 use std::collections::HashMap;
 use thiserror::Error;
@@ -72,6 +73,8 @@ pub struct Poema {
     pub versos: Vec<EscansaoVerso>,
     /// Raw original lines.
     pub linhas_originais: Vec<String>,
+    /// Overall detected rhyme scheme (e.g. "ABBA", "ABCB").
+    pub esquema_rima: Option<String>,
 }
 
 /// Parses a `lirica` block containing optional `%%` headers followed by verses.
@@ -140,13 +143,24 @@ pub fn parse_lirica_block(bloco: &str) -> Result<(PoemaConfig, Poema), LiricaErr
         versos.push(escansao);
     }
 
-    Ok((
-        config,
-        Poema {
-            versos,
-            linhas_originais: verse_lines,
-        },
-    ))
+    let mut poem = Poema {
+        versos,
+        linhas_originais: verse_lines.clone(),
+        esquema_rima: None,
+    };
+
+    if config.analisar_rima {
+        let (info_rimas, esquema) = analisar_esquema_rimas(&verse_lines);
+        poem.esquema_rima = esquema;
+        for (v, rima_opt) in poem.versos.iter_mut().zip(info_rimas) {
+            if let Some(r) = rima_opt {
+                v.rima = Some(r.letra);
+                v.rima_terminacao = Some(r.terminacao);
+            }
+        }
+    }
+
+    Ok((config, poem))
 }
 
 /// Renders a poem in dual-panel HedgeDoc style.
@@ -171,15 +185,26 @@ pub fn render_painel(poema: &Poema) -> String {
             .collect();
 
         let class_str = esc.classificacao.as_deref().unwrap_or("Indeterminado");
+        let rima_str = if let Some(r) = &esc.rima {
+            format!("[{}] ", r)
+        } else {
+            String::new()
+        };
 
         out.push_str(&format!(
-            "{:<40} │ {} │ {} [Tônicas: {:?}]\n",
+            "{:<40} │ {} │ {}{} [Tônicas: {:?}]\n",
             orig,
             partes.join("-"),
+            rima_str,
             class_str,
             esc.esquema_tonico
         ));
     }
+
+    if let Some(esq) = &poema.esquema_rima {
+        out.push_str(&format!("\nEsquema Rímico: {}\n", esq));
+    }
+
     out
 }
 
@@ -196,9 +221,10 @@ pub fn render_typst(config: &PoemaConfig, poema: &Poema) -> String {
     typst.push_str("#align(center)[\n#block(width: auto)[\n");
     for (orig, esc) in poema.linhas_originais.iter().zip(poema.versos.iter()) {
         let class = esc.classificacao.as_deref().unwrap_or("");
+        let rima = esc.rima.as_deref().unwrap_or("");
         typst.push_str(&format!(
-            "  #grid(columns: (1fr, auto), align: (left, right), [{}], text(size: 8pt, fill: luma(120))[{} ({}s)])\n",
-            orig, class, esc.total_metricas
+            "  #grid(columns: (1fr, auto), align: (left, right), [{}], text(size: 8pt, fill: luma(120))[{} {} ({}s)])\n",
+            orig, rima, class, esc.total_metricas
         ));
     }
     typst.push_str("]\n]\n");
