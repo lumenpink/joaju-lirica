@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-21
+
+### Features
+- **corpus:** benchmark de 50 poemas e elisão universal (closes #6)
+
+### Maintenance
+- **version:** sincronizar Cargo.toml para 0.3.0
+- **version:** sincronizar VERSION para 0.3.0-dev.2+20261021.713ff53
+
+## [0.3.0] - 2026-10-21
+
+### Features
+- **corpus:** benchmark de 50 poemas e elisão universal (closes #6)
+
+### Maintenance
+- **version:** sincronizar Cargo.toml para 0.3.0
+- **version:** sincronizar VERSION para 0.3.0-dev.2+20261021.713ff53
+
 ## [0.2.0] - 2026-10-21
 
 ### Features
