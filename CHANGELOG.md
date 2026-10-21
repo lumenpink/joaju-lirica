@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-21
+
+### Features
+- **form:** detecção de formas poéticas e rimas (closes #4)
+- detecção de rimas, forçar hiato com barra e apóstrofo tônico
+- **ci:** padronizar pipeline gitops e registry lumen (closes #2)
+- **engine:** implement core poetic scansion and directives (#1)
+
+### Bug Fixes
+- **scansion:** impedir sinalefa sobre vogais e ditongos tônicos finais
+- **ci:** instalar rustfmt e clippy no setup toolchain (closes #3)
+- **cli:** resolve ambiguous short flag collision for typst (#1)
+
+### Documentation
+- **changelog:** record poetic scansion engine features (closes #1)
+- **specs:** add specification for poetic scansion engine (#1)
+
+### Testing
+- **scansion:** add edge cases, mutation, and renderer tests (#1)
+- **scansion:** add failing unit and integration tests (#1)
+
+### Maintenance
+- **version:** sincronizar VERSION para 0.1.0-dev.20+20261021.d4c4c0c
+- **release:** automação de sync de versão da crate (closes #5)
+- update Cargo.lock to 0.1.3
+- **version:** sincronizar VERSION para 0.1.0-dev.17+20261021.02540c9
+- **release:** bump joaju-lirica to 0.1.3 (#4)
+- **version:** sincronizar VERSION para 0.1.0-dev.12+20261020.59a55b9
+- **version:** sincronizar VERSION para 0.1.0-dev.10+20261020.98786a6
+- **version:** sincronizar VERSION para 0.1.0-dev.8+20261020.c81b1a0
+- initial repository scaffold under GOST standard
+
 ## [Unreleased]
 
 ### Added
