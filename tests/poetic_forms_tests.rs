@@ -166,3 +166,23 @@ Amor é fogo que arde sem se ver,
     assert_eq!(rima_info.tipo_disposicao, "Interpoladas (Abraçadas)");
     assert_eq!(rima_info.percentual_rimado, 100);
 }
+
+#[test]
+fn test_versao_cargo_consistente_com_cccp() {
+    let pkg_version = env!("CARGO_PKG_VERSION");
+    let version_file_content =
+        std::fs::read_to_string("VERSION").unwrap_or_else(|_| pkg_version.to_string());
+    let clean_version = version_file_content
+        .trim()
+        .split('-')
+        .next()
+        .unwrap_or("")
+        .split('+')
+        .next()
+        .unwrap_or("");
+    assert_eq!(
+        pkg_version, clean_version,
+        "A versão no Cargo.toml ({}) deve corresponder à versão canônica do CCCP ({})",
+        pkg_version, clean_version
+    );
+}
