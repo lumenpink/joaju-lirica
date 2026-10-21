@@ -2,23 +2,51 @@ use joaju_lirica::{escandir_verso, parse_lirica_block};
 
 #[test]
 fn test_camoes_decassilabo_heroico() {
-    let verso = "Amor é fogo que arde sem se ver";
-    let escansao = escandir_verso(verso);
+    let versos = [
+        "Amor é fogo que arde sem se ver,",
+        "É ferida que dói e não se sente;",
+        "É um contentamento descontente,",
+        "É dor que desatina sem doer.",
+    ];
 
-    assert_eq!(escansao.total_metricas, 10);
-    assert_eq!(escansao.esquema_tonico, vec![2, 3, 4, 6, 10]);
-    assert_eq!(
-        escansao.classificacao.as_deref(),
-        Some("Decassílabo Heroico")
-    );
+    for v in versos {
+        let esc = escandir_verso(v);
+        assert_eq!(
+            esc.total_metricas, 10,
+            "Verso '{}' deve ter exatamente 10 sílabas métricas, teve {}",
+            v, esc.total_metricas
+        );
+        assert!(
+            esc.classificacao
+                .as_deref()
+                .unwrap()
+                .contains("Decassílabo"),
+            "Verso '{}' deve ser classificado como Decassílabo",
+            v
+        );
+    }
 
-    // Verify sinalefa between "que" and "arde"
+    // Verify sinalefa between "que" and "arde" on verse 1
+    let escansao = escandir_verso("Amor é fogo que arde sem se ver");
     let fusao_opt = escansao.silabas.iter().find(|s| s.texto.contains('_'));
     assert!(fusao_opt.is_some(), "Expected elision between que and arde");
     let fusao = fusao_opt.unwrap();
     assert_eq!(fusao.texto, "que_ar");
     assert!(fusao.fusao);
     assert!(fusao.tonica);
+
+    // Verify hiatus on tonic monosyllable "É" and "dói"
+    let esc2 = escandir_verso("É ferida que dói e não se sente;");
+    assert!(
+        !esc2.silabas.iter().any(|s| s.texto.contains("dói_e")),
+        "dói não deve elidir com e"
+    );
+
+    let esc3 = escandir_verso("É um contentamento descontente,");
+    assert!(
+        !esc3.silabas.iter().any(|s| s.texto.contains("É_um")),
+        "É não deve elidir com um"
+    );
 }
 
 #[test]

@@ -138,12 +138,13 @@ pub fn escandir_verso_com_opcoes(
             let comeca_som_vocalico = p1.is_some_and(is_vowel)
                 || (matches!(p1, Some('h' | 'H')) && p2.is_some_and(is_vowel));
 
-            let ambas_tonicas = atual.tonica && prox.tonica;
+            // Vogal tônica final (oxítona ou monossílabo tônico) não forma sinalefa
+            // com a vogal seguinte (hiato obrigatório), a menos que explicitamente forçada com '_'.
             let pode_fundir = (atual.fim_de_palavra
                 && !atual.bloqueia_sinalefa
                 && termina_vogal
                 && comeca_som_vocalico
-                && !ambas_tonicas)
+                && !atual.tonica)
                 || atual.forcar_sinalefa_proxima;
 
             if pode_fundir {
