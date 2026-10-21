@@ -65,7 +65,19 @@ impl Default for PoemaConfig {
     }
 }
 
-/// Analyzed poem containing scansion results for each line.
+/// Represents a stanza (group of verses delimited by blank lines).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Estrofe {
+    /// Zero-based index of the stanza.
+    pub indice: usize,
+    /// Scansion results for each verse in this stanza.
+    pub versos: Vec<EscansaoVerso>,
+    /// Raw original lines for this stanza.
+    pub linhas_originais: Vec<String>,
+}
+
+/// Analyzed poem containing scansion results for each line and strophic layout.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Poema {
@@ -73,6 +85,8 @@ pub struct Poema {
     pub versos: Vec<EscansaoVerso>,
     /// Raw original lines.
     pub linhas_originais: Vec<String>,
+    /// Stanzas grouped by blank lines.
+    pub estrofes: Vec<Estrofe>,
     /// Overall detected rhyme scheme (e.g. "ABBA", "ABCB").
     pub esquema_rima: Option<String>,
 }
@@ -81,6 +95,8 @@ pub struct Poema {
 pub fn parse_lirica_block(bloco: &str) -> Result<(PoemaConfig, Poema), LiricaError> {
     let mut directives = HashMap::new();
     let mut verse_lines = Vec::new();
+    let mut stanza_lines: Vec<Vec<String>> = Vec::new();
+    let mut current_stanza: Vec<String> = Vec::new();
 
     for line in bloco.lines() {
         let trimmed = line.trim();
@@ -92,9 +108,18 @@ pub fn parse_lirica_block(bloco: &str) -> Result<(PoemaConfig, Poema), LiricaErr
                     v.trim().trim_matches('"').trim_matches('\'').to_string(),
                 );
             }
-        } else if !trimmed.is_empty() {
+        } else if trimmed.is_empty() {
+            if !current_stanza.is_empty() {
+                stanza_lines.push(current_stanza);
+                current_stanza = Vec::new();
+            }
+        } else {
             verse_lines.push(line.to_string());
+            current_stanza.push(line.to_string());
         }
+    }
+    if !current_stanza.is_empty() {
+        stanza_lines.push(current_stanza);
     }
 
     let mut config = PoemaConfig::default();
@@ -143,22 +168,38 @@ pub fn parse_lirica_block(bloco: &str) -> Result<(PoemaConfig, Poema), LiricaErr
         versos.push(escansao);
     }
 
-    let mut poem = Poema {
-        versos,
-        linhas_originais: verse_lines.clone(),
-        esquema_rima: None,
-    };
-
-    if config.analisar_rima {
+    let poem_esquema_rima = if config.analisar_rima {
         let (info_rimas, esquema) = analisar_esquema_rimas(&verse_lines);
-        poem.esquema_rima = esquema;
-        for (v, rima_opt) in poem.versos.iter_mut().zip(info_rimas) {
+        for (v, rima_opt) in versos.iter_mut().zip(info_rimas) {
             if let Some(r) = rima_opt {
                 v.rima = Some(r.letra);
                 v.rima_terminacao = Some(r.terminacao);
             }
         }
+        esquema
+    } else {
+        None
+    };
+
+    let mut estrofes = Vec::new();
+    let mut offset = 0;
+    for (i, s_lines) in stanza_lines.iter().enumerate() {
+        let count = s_lines.len();
+        let s_versos = versos[offset..offset + count].to_vec();
+        offset += count;
+        estrofes.push(Estrofe {
+            indice: i,
+            versos: s_versos,
+            linhas_originais: s_lines.clone(),
+        });
     }
+
+    let poem = Poema {
+        versos,
+        linhas_originais: verse_lines.clone(),
+        estrofes,
+        esquema_rima: poem_esquema_rima,
+    };
 
     Ok((config, poem))
 }

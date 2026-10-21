@@ -99,3 +99,129 @@ pub fn analisar_esquema_rimas(linhas: &[String]) -> (Vec<Option<InfoRima>>, Opti
 
     (resultado, esquema)
 }
+
+/// Qualitative evaluation and acoustic classification of poem rhymes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct InfoAvaliacaoRima {
+    /// Overall rhyme scheme string (e.g. "ABBA", "ABBAACCDDC").
+    pub esquema: String,
+    /// Spatial arrangement category (e.g. "Interpoladas (Abraçadas)", "Alternadas", "Emparelhadas").
+    pub tipo_disposicao: String,
+    /// Acoustic purity classification (e.g. "Consoante (Perfeita)", "Toante (Assonante)", "Branca").
+    pub pureza_acustica: String,
+    /// Percentage of rhymed verses (0 to 100).
+    pub percentual_rimado: u8,
+}
+
+/// Evaluates rhyme quality, acoustic purity, and disposition pattern across a poem.
+pub fn avaliar_qualidade_rimas(poema: &crate::block::Poema) -> InfoAvaliacaoRima {
+    let total = poema.versos.len();
+    if total == 0 {
+        return InfoAvaliacaoRima {
+            esquema: String::new(),
+            tipo_disposicao: "Sem versos".to_string(),
+            pureza_acustica: "Indeterminada".to_string(),
+            percentual_rimado: 0,
+        };
+    }
+
+    let esquema = poema.esquema_rima.clone().unwrap_or_default();
+
+    // Contagem de frequência de cada letra
+    let mut frequencia: HashMap<char, usize> = HashMap::new();
+    for c in esquema.chars() {
+        *frequencia.entry(c).or_insert(0) += 1;
+    }
+
+    // Versos que rimam (com letra repetida ao menos 2 vezes)
+    let versos_rimados = poema
+        .versos
+        .iter()
+        .filter(|v| {
+            if let Some(r) = &v.rima {
+                if let Some(c) = r.chars().next() {
+                    return frequencia.get(&c).copied().unwrap_or(0) >= 2;
+                }
+            }
+            false
+        })
+        .count();
+
+    let percentual_rimado = if total > 0 {
+        ((versos_rimados as f32 / total as f32) * 100.0)
+            .round()
+            .clamp(0.0, 100.0) as u8
+    } else {
+        0
+    };
+
+    // Disposição
+    let tipo_disposicao = match esquema.as_str() {
+        "ABBA" => "Interpoladas (Abraçadas)".to_string(),
+        "ABAB" => "Alternadas (Cruzadas)".to_string(),
+        "AABB" => "Emparelhadas (Geminadas)".to_string(),
+        "AAAA" => "Contínuas (Monorrimas)".to_string(),
+        "ABCB" => "Alternadas Populares".to_string(),
+        "ABBAACCDDC" => "Espinela (Interpoladas e Geminadas)".to_string(),
+        "ABABABCC" => "Oitava Real (Alternadas com Dístico)".to_string(),
+        s if s.starts_with("ABBAABBA") => "Mista Clássica (Interpoladas nas Quadras)".to_string(),
+        s if s.starts_with("ABABABAB") => "Mista Clássica (Alternadas nas Quadras)".to_string(),
+        s if s.len() == 6
+            && s.chars().nth(1) == s.chars().nth(3)
+            && s.chars().nth(3) == s.chars().nth(5) =>
+        {
+            "Sextilha de Cordel (Versos Pares)".to_string()
+        }
+        _ => {
+            if percentual_rimado == 0 {
+                "Versos Brancos (Sem Rima)".to_string()
+            } else if frequencia.values().any(|&count| count >= 2) {
+                "Mista / Livre".to_string()
+            } else {
+                "Sem Esquema Definido".to_string()
+            }
+        }
+    };
+
+    // Pureza acústica
+    let mut mapa_terminacoes: HashMap<char, Vec<String>> = HashMap::new();
+    for v in &poema.versos {
+        if let (Some(r), Some(t)) = (&v.rima, &v.rima_terminacao) {
+            if let Some(c) = r.chars().next() {
+                if frequencia.get(&c).copied().unwrap_or(0) >= 2 {
+                    mapa_terminacoes.entry(c).or_default().push(t.clone());
+                }
+            }
+        }
+    }
+
+    let pureza_acustica = if mapa_terminacoes.is_empty() {
+        "Branca (Versos Soltos)".to_string()
+    } else {
+        let mut todas_perfeitas = true;
+        for terms in mapa_terminacoes.values() {
+            if terms.len() >= 2 {
+                let primeira = &terms[0];
+                for t in &terms[1..] {
+                    if t != primeira {
+                        todas_perfeitas = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if todas_perfeitas {
+            "Consoante (Perfeita)".to_string()
+        } else {
+            "Toante (Assonante)".to_string()
+        }
+    };
+
+    InfoAvaliacaoRima {
+        esquema,
+        tipo_disposicao,
+        pureza_acustica,
+        percentual_rimado,
+    }
+}
