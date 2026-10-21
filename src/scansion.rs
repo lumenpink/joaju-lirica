@@ -46,6 +46,7 @@ struct SilabaBruta {
     span: Range<usize>,
     tonica: bool,
     fim_de_palavra: bool,
+    eh_monossilabo_sem_acento: bool,
     bloqueia_sinalefa: bool,
     forcar_sinalefa_proxima: bool,
 }
@@ -122,8 +123,23 @@ pub fn escandir_verso_com_opcoes(
             } else if c == '_' {
                 forcar_sinalefa = true;
                 bloqueia_sinalefa = false;
-            } else if matches!(c, ',' | ';' | '.' | ':' | '!' | '?' | '—' | ')')
-                && !elidir_pontuacao
+            } else if matches!(
+                c,
+                ',' | ';'
+                    | '.'
+                    | ':'
+                    | '!'
+                    | '?'
+                    | '—'
+                    | '-'
+                    | ')'
+                    | ']'
+                    | '…'
+                    | '\"'
+                    | '«'
+                    | '»'
+                    | '”'
+            ) && !elidir_pontuacao
             {
                 bloqueia_sinalefa = true;
             }
@@ -135,6 +151,8 @@ pub fn escandir_verso_com_opcoes(
             let sils = separar_silabas_com_spans(fatia_palavra, inicio_palavra, dierese_crescente);
             let idx_tonica = descobrir_tonica(&sils, &palavra_limpa);
             let total_sils = sils.len();
+            let eh_monossilabo_sem_acento =
+                total_sils == 1 && !palavra_limpa.chars().any(is_acute_or_circumflex);
 
             for (idx, (texto_sil, span_sil)) in sils.into_iter().enumerate() {
                 let eh_fim = idx + 1 == total_sils;
@@ -144,6 +162,7 @@ pub fn escandir_verso_com_opcoes(
                     span: span_sil,
                     tonica: idx_tonica == Some(idx),
                     fim_de_palavra: eh_fim,
+                    eh_monossilabo_sem_acento,
                     bloqueia_sinalefa: eh_fim && bloqueia_sinalefa && !forcar_sinalefa,
                     forcar_sinalefa_proxima: eh_fim && forcar_sinalefa,
                 });
@@ -169,13 +188,14 @@ pub fn escandir_verso_com_opcoes(
             let comeca_som_vocalico = p1.is_some_and(is_vowel)
                 || (matches!(p1, Some('h' | 'H')) && p2.is_some_and(is_vowel));
 
-            // Vogais tônicas finais (oxítonas e monossílabos tônicos) impõem hiato obrigatório,
-            // a não ser que haja forçamento explícito de sinalefa com '_'.
+            // Vogais tônicas finais (oxítonas e monossílabos acentuados) impõem hiato obrigatório,
+            // exceto se for monossílabo sem acento gráfico (ex: "si", "ti") ou com forçamento expresso '_'.
+            let bloqueia_por_tonica = atual.tonica && !atual.eh_monossilabo_sem_acento;
             let pode_fundir = (atual.fim_de_palavra
                 && !atual.bloqueia_sinalefa
                 && termina_vogal
                 && comeca_som_vocalico
-                && !atual.tonica)
+                && !bloqueia_por_tonica)
                 || atual.forcar_sinalefa_proxima;
 
             if pode_fundir {
@@ -184,8 +204,14 @@ pub fn escandir_verso_com_opcoes(
                 atual.tonica = atual.tonica || prox.tonica;
                 atual.fim_de_palavra = prox.fim_de_palavra;
                 atual.bloqueia_sinalefa = prox.bloqueia_sinalefa;
-                atual.forcar_sinalefa_proxima = prox.forcar_sinalefa_proxima;
+                let forcar_prox = prox.forcar_sinalefa_proxima;
                 idx += 1; // Consume next syllable in fusion
+
+                // A sinalefa canônica na métrica lusófona é binária (une 2 sílabas vocálicas contíguas).
+                // Não absorve uma 3ª palavra sucessiva em tritongo, a menos que haja '_' forçado.
+                if !forcar_prox {
+                    break;
+                }
             } else {
                 break;
             }

@@ -277,3 +277,17 @@ fn test_analise_rimas_e_icones() {
     assert_eq!(icone_metro("Redondilha Maior"), "🌿");
     assert_eq!(icone_metro("Alexandrino Clássico"), "👑");
 }
+
+#[test]
+fn test_verso14_camoes_decassilabo() {
+    let esc = escandir_verso("Se tão contrário a si é o mesmo Amor?");
+    println!(
+        "Verso 14 escansao: {:?}",
+        esc.silabas.iter().map(|s| &s.texto).collect::<Vec<_>>()
+    );
+    println!("Total metricas: {}", esc.total_metricas);
+    assert_eq!(
+        esc.total_metricas, 10,
+        "Verso 14 de Camões deve ser decassílabo exato"
+    );
+}
