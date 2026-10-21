@@ -150,3 +150,48 @@ Se tão contrário a si é o mesmo Amor?";
     assert_eq!(diag.nome, "Soneto Italiano (Petrarquiano)");
     assert_eq!(diag.confianca_percentual, 100);
 }
+
+#[test]
+fn test_vinicius_soneto_fidelidade_14_decassilabos() {
+    let texto = "\
+De tudo, ao meu amor serei atento
+Antes, e com tal zelo, e sempre tanto
+Que mesmo em face do maior encanto
+Dele se encante mais meu pensamento.
+
+Quero vivê-lo em cada vão momento
+E em seu louvor hei de espalhar meu canto
+E rir meu riso e derramar meu pranto
+Ao seu pesar ou seu contentamento.
+
+E assim, quando mais tarde me procure
+Quem sabe a morte, angústia de quem vive
+Quem sabe a solidão, fim de quem ama
+
+Eu possa me dizer do amor (que tive):
+Que não seja imortal, posto que é chama
+Mas que seja infinito enquanto dure.";
+
+    let poema = escandir_poema(texto, true, false, true, true);
+    assert_eq!(poema.versos.len(), 14);
+
+    for (i, v) in poema.versos.iter().enumerate() {
+        assert_eq!(
+            v.total_metricas,
+            10,
+            "Verso {} de Vinícius ('{}') deve ter exatamente 10 sílabas, teve {}",
+            i + 1,
+            poema.linhas_originais[i],
+            v.total_metricas
+        );
+        assert!(
+            v.classificacao.as_deref().unwrap().contains("Decassílabo"),
+            "Verso {} deve ser Decassílabo",
+            i + 1
+        );
+    }
+
+    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Soneto Petrarquiano");
+    assert_eq!(diag.nome, "Soneto Italiano (Petrarquiano)");
+    assert_eq!(diag.confianca_percentual, 100);
+}

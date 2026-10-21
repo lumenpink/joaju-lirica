@@ -182,6 +182,21 @@ pub fn escandir_verso_com_opcoes(
             let prox = &silabas_brutas[idx + 1];
 
             let termina_vogal = atual.texto.chars().last().is_some_and(is_vowel);
+
+            // Ditongos decrescentes finais (orais como -eu, -ei, -ou, -ai, -au ou nasais como -ão, -õe)
+            // possuem semivogal de fecho (glide em coda) e não fazem sinalefa canônica, mantendo hiato
+            // natural (ex.: "meu amor" -> "meu" | "a-mor", e não "meu_a-mor").
+            let termina_em_ditongo = {
+                let ultimos: Vec<char> = atual.texto.chars().rev().take(2).collect();
+                if ultimos.len() == 2 {
+                    let ult = ultimos[0];
+                    let penult = ultimos[1];
+                    (is_vowel(penult) && is_semivowel(ult)) || (is_tilde(penult) && is_vowel(ult))
+                } else {
+                    false
+                }
+            };
+
             let mut chars_prox = prox.texto.chars();
             let p1 = chars_prox.next();
             let p2 = chars_prox.next();
@@ -194,6 +209,7 @@ pub fn escandir_verso_com_opcoes(
             let pode_fundir = (atual.fim_de_palavra
                 && !atual.bloqueia_sinalefa
                 && termina_vogal
+                && !termina_em_ditongo
                 && comeca_som_vocalico
                 && !bloqueia_por_tonica)
                 || atual.forcar_sinalefa_proxima;

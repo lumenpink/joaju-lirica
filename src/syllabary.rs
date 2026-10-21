@@ -15,6 +15,20 @@ pub fn separar_silabas_com_spans(
         return Vec::new();
     }
 
+    // Contração átona indivisível "ao" / "aos" (ditongo decrescente oral [aw]),
+    // a menos que haja forçamento explícito de hiato com barra "/" (ex.: "a/o").
+    let lower_limpa = palavra
+        .to_lowercase()
+        .chars()
+        .filter(|&c| c != '\'' && c != '/')
+        .collect::<String>();
+    if !palavra.contains('/') && (lower_limpa == "ao" || lower_limpa == "aos") {
+        return vec![(
+            palavra.to_string(),
+            offset_base..offset_base + palavra.len(),
+        )];
+    }
+
     let mut silabas = Vec::new();
     let mut inicio_byte = offset_base + chars[0].0;
     let mut texto_atual = String::new();

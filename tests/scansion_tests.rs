@@ -291,3 +291,45 @@ fn test_verso14_camoes_decassilabo() {
         "Verso 14 de Camões deve ser decassílabo exato"
     );
 }
+
+#[test]
+fn test_ditongo_ao_e_soneto_fidelidade() {
+    use joaju_lirica::escandir_verso_com_opcoes;
+
+    // "ao" e "aos" devem ser uma única sílaba átona
+    let esc_ao = escandir_verso("ao");
+    assert_eq!(esc_ao.silabas.len(), 1, "ao deve ser 1 sílaba só");
+    assert_eq!(esc_ao.silabas[0].texto, "ao");
+    assert!(!esc_ao.silabas[0].tonica, "ao deve ser átono");
+
+    let esc_aos = escandir_verso("aos");
+    assert_eq!(esc_aos.silabas.len(), 1, "aos deve ser 1 sílaba só");
+    assert_eq!(esc_aos.silabas[0].texto, "aos");
+    assert!(!esc_aos.silabas[0].tonica, "aos deve ser átono");
+
+    // Verso 8 do Soneto de Fidelidade de Vinícius de Moraes
+    let v8 = "Ao seu pesar ou seu contentamento.";
+    let esc_v8 = escandir_verso_com_opcoes(v8, true, false, true);
+    assert_eq!(
+        esc_v8.total_metricas, 10,
+        "Verso 8 de Vinícius deve ser decassílabo exato, teve {}",
+        esc_v8.total_metricas
+    );
+    assert!(
+        esc_v8
+            .classificacao
+            .as_deref()
+            .unwrap()
+            .contains("Decassílabo"),
+        "Verso 8 deve ser classificado como Decassílabo"
+    );
+
+    // Verso 1 do Soneto de Fidelidade
+    let v1 = "De tudo, ao meu amor serei atento";
+    let esc_v1 = escandir_verso_com_opcoes(v1, true, false, true);
+    assert_eq!(
+        esc_v1.total_metricas, 10,
+        "Verso 1 de Vinícius deve ser decassílabo exato, teve {}",
+        esc_v1.total_metricas
+    );
+}
