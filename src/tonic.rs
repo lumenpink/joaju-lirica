@@ -63,7 +63,8 @@ pub fn descobrir_tonica(silabas: &[(String, Range<usize>)], palavra_limpa: &str)
         || clean_lower.ends_with('o')
         || clean_lower.ends_with("os")
         || clean_lower.ends_with("em")
-        || clean_lower.ends_with("ens");
+        || clean_lower.ends_with("ens")
+        || clean_lower.ends_with("am");
 
     if paroxitona {
         if silabas.len() >= 2 {

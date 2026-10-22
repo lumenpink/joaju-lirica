@@ -47,6 +47,7 @@ struct SilabaBruta {
     tonica: bool,
     fim_de_palavra: bool,
     eh_monossilabo_sem_acento: bool,
+    eh_clitico_atono: bool,
     bloqueia_sinalefa: bool,
     forcar_sinalefa_proxima: bool,
 }
@@ -156,13 +157,18 @@ pub fn escandir_verso_com_opcoes(
 
             for (idx, (texto_sil, span_sil)) in sils.into_iter().enumerate() {
                 let eh_fim = idx + 1 == total_sils;
-                let texto_limpo: String = texto_sil.chars().filter(|&c| c != '\'').collect();
+                let texto_limpo: String = texto_sil
+                    .chars()
+                    .filter(|&c| c != '\'' && c != '-')
+                    .collect();
+                let eh_clitico_atono = is_unstressed_monosyllable(&texto_limpo);
                 silabas_brutas.push(SilabaBruta {
                     texto: texto_limpo,
                     span: span_sil,
                     tonica: idx_tonica == Some(idx),
                     fim_de_palavra: eh_fim,
                     eh_monossilabo_sem_acento,
+                    eh_clitico_atono,
                     bloqueia_sinalefa: eh_fim && bloqueia_sinalefa && !forcar_sinalefa,
                     forcar_sinalefa_proxima: eh_fim && forcar_sinalefa,
                 });
@@ -204,14 +210,20 @@ pub fn escandir_verso_com_opcoes(
                 || (matches!(p1, Some('h' | 'H')) && p2.is_some_and(is_vowel));
 
             // Vogais tônicas finais (oxítonas e monossílabos acentuados) impõem hiato obrigatório,
-            // exceto se for monossílabo sem acento gráfico (ex: "si", "ti") ou com forçamento expresso '_'.
-            let bloqueia_por_tonica = atual.tonica && !atual.eh_monossilabo_sem_acento;
+            // exceto se for monossílabo sem acento (ex: "si", "ti") ou clítico átono (ex: "se", "me").
+            let bloqueia_por_tonica =
+                atual.tonica && !atual.eh_monossilabo_sem_acento && !atual.eh_clitico_atono;
+
+            // Sinalefa terciária em cadeia de clíticos: nunca pode absorver uma sílaba tônica seguinte.
+            let bloqueia_terciaria_por_tonica = atual.texto.contains('_') && prox.tonica;
+
             let pode_fundir = (atual.fim_de_palavra
                 && !atual.bloqueia_sinalefa
                 && termina_vogal
                 && !termina_em_ditongo
                 && comeca_som_vocalico
-                && !bloqueia_por_tonica)
+                && !bloqueia_por_tonica
+                && !bloqueia_terciaria_por_tonica)
                 || atual.forcar_sinalefa_proxima;
 
             if pode_fundir {
@@ -223,9 +235,13 @@ pub fn escandir_verso_com_opcoes(
                 let forcar_prox = prox.forcar_sinalefa_proxima;
                 idx += 1; // Consume next syllable in fusion
 
-                // A sinalefa canônica na métrica lusófona é binária (une 2 sílabas vocálicas contíguas).
-                // Não absorve uma 3ª palavra sucessiva em tritongo, a menos que haja '_' forçado.
-                if !forcar_prox {
+                // A sinalefa canônica na métrica lusófona é prioritariamente binária (une 2 sílabas
+                // vocálicas contíguas). Não absorve uma 3ª palavra em tritongo, exceto se houver '_'
+                // forçado ou se for uma cadeia de clíticos monossilábicos contíguos
+                // (ex.: "Transforma-se o amador" -> se_o_a; "fez-se a espuma" -> se_a_es).
+                let cadeia_cliticos_atonos =
+                    atual.eh_clitico_atono && prox.eh_clitico_atono && !prox.tonica;
+                if !forcar_prox && !cadeia_cliticos_atonos {
                     break;
                 }
             } else {

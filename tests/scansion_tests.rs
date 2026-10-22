@@ -333,3 +333,24 @@ fn test_ditongo_ao_e_soneto_fidelidade() {
         esc_v1.total_metricas
     );
 }
+
+#[test]
+fn test_gorjeiam_e_override_apostrofo() {
+    // 1. gorjeiam natural é paroxítona em -am
+    let esc1 = escandir_verso("As aves que aqui gorjeiam,");
+    assert_eq!(
+        esc1.total_metricas, 7,
+        "Canção do Exílio v3 deve ser redondilha maior"
+    );
+    assert_eq!(esc1.classificacao.as_deref(), Some("Redondilha Maior"));
+
+    // 2. apóstrofo manual define a tônica com precisão
+    let esc2 = escandir_verso("gorjei'am");
+    assert_eq!(esc2.esquema_tonico, vec![2]);
+
+    let esc3 = escandir_verso("fogo'");
+    assert_eq!(esc3.esquema_tonico, vec![2]);
+
+    let esc4 = escandir_verso("a'mor");
+    assert_eq!(esc4.esquema_tonico, vec![1]);
+}

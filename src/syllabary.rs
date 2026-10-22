@@ -53,6 +53,14 @@ pub fn separar_silabas_com_spans(
         }
 
         texto_atual.push(c);
+
+        // Se o caractere seguinte for o marcador manual de tonicidade "'",
+        // absorve-o imediatamente na sílaba corrente para não contaminar a próxima sílaba.
+        if i + 1 < n && chars[i + 1].1 == '\'' {
+            texto_atual.push('\'');
+            i += 1;
+        }
+
         let prox = if i + 1 < n {
             Some(chars[i + 1].1)
         } else {
@@ -94,14 +102,20 @@ pub fn separar_silabas_com_spans(
                         continue;
                     }
 
-                    // Two strong vowels (e.g. po-e-ta, ca-os, vo-o) -> Hiatus
+                    // Two strong vowels (e.g. po-e-ta, ca-os, vo-o) -> Hiatus,
+                    // a menos que sejam vogais átonas pós-tônicas precedidas de acento gráfico
+                    // (ex.: e-té-reo, má-goa, vár-zea, ní-veo, áu-reo), que formam ditongo
+                    // crescente átono / sinérese poética canônica.
                     if is_strong_vowel(c) && is_strong_vowel(p) {
-                        let fim_byte = offset_base + chars[i + 1].0;
-                        silabas.push((texto_atual.clone(), inicio_byte..fim_byte));
-                        texto_atual.clear();
-                        inicio_byte = fim_byte;
-                        i += 1;
-                        continue;
+                        let ja_teve_acento = palavra[..chars[i].0].chars().any(is_accented_vowel);
+                        if !ja_teve_acento || dierese_crescente {
+                            let fim_byte = offset_base + chars[i + 1].0;
+                            silabas.push((texto_atual.clone(), inicio_byte..fim_byte));
+                            texto_atual.clear();
+                            inicio_byte = fim_byte;
+                            i += 1;
+                            continue;
+                        }
                     }
 
                     // Semivowel (i, u) + Strong Vowel (a, e, o):
@@ -153,9 +167,10 @@ pub fn separar_silabas_com_spans(
 
             // 3. Next character is Consonant: determine boundary
             if let Some(p) = prox {
-                if !is_vowel(p) && p != '/' {
+                if !is_vowel(p) && p != '/' && p != '\'' {
                     let mut j = i + 1;
-                    while j < n && !is_vowel(chars[j].1) && chars[j].1 != '/' {
+                    while j < n && !is_vowel(chars[j].1) && chars[j].1 != '/' && chars[j].1 != '\''
+                    {
                         j += 1;
                     }
 
