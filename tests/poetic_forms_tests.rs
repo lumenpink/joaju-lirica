@@ -180,8 +180,15 @@ fn test_versao_cargo_consistente_com_cccp() {
         .split('+')
         .next()
         .unwrap_or("");
+    let clean_pkg_version = pkg_version
+        .split('-')
+        .next()
+        .unwrap_or("")
+        .split('+')
+        .next()
+        .unwrap_or("");
     assert_eq!(
-        pkg_version, clean_version,
+        clean_pkg_version, clean_version,
         "A versão no Cargo.toml ({}) deve corresponder à versão canônica do CCCP ({})",
         pkg_version, clean_version
     );

@@ -51,13 +51,13 @@ if ! grep -q "rustup component add" "$WORKFLOW"; then
   exit 1
 fi
 
-if ! grep -q "CANONICAL_VERSION" "$WORKFLOW"; then
-  echo "✘ [FALHA] $WORKFLOW nao sincroniza a versao canonica!"
+if ! grep -q "http://127.0.0.1:4040/api/cascade/dispatch" "$WORKFLOW"; then
+  echo "✘ [FALHA] $WORKFLOW nao notifica o daemon Kombinat de cascata!"
   exit 1
 fi
 
-if ! grep -q "repos/lumenpink/joaju/actions/workflows/ci.yml/dispatches" "$WORKFLOW"; then
-  echo "✘ [FALHA] $WORKFLOW nao dispara a esteira downstream do joaju!"
+if grep -q "codeberg.org/api/v1/repos" "$WORKFLOW"; then
+  echo "✘ [FALHA] $WORKFLOW contem chamadas legadas de dispatch para Codeberg!"
   exit 1
 fi
 

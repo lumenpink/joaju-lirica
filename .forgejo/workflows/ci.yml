@@ -85,24 +85,11 @@ jobs:
 
       - name: "Publish Crate to Lumen Registry"
         run: |
-          CANONICAL_VERSION=$(head -n 1 VERSION | tr -d ' \r\n')
-          echo "-> Sincronizando Cargo.toml para a versao canonica: $CANONICAL_VERSION"
-          sed -i "0,/^version = .*/s//version = \"${CANONICAL_VERSION}\"/" Cargo.toml
-          echo "-> Publicando joaju-lirica no registry lumen..."
-          cargo publish --registry lumen --allow-dirty || echo "::warning::Versao ja publicada ou falha tolerada no registry."
+          cargo publish --registry gambi --allow-dirty || cargo publish --registry lumen --allow-dirty || echo "::warning::Versao ja publicada ou falha tolerada no registry."
 
-      - name: "GitOps Cascade — Dispatch Downstream joaju"
-        env:
-          CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
+      - name: "Notify Kombinat Daemon of Release Cascade"
         run: |
-          if [ -n "$CODEBERG_TOKEN" ]; then
-            echo "-> Notificando consumidor downstream (joaju)..."
-            curl -s -X POST \
-              -H "Authorization: token $CODEBERG_TOKEN" \
-              -H "Content-Type: application/json" \
-              "https://codeberg.org/api/v1/repos/lumenpink/joaju/actions/workflows/ci.yml/dispatches" \
-              -d '{"ref": "main"}' || true
-            echo "✔ Disparo enviado para joaju com sucesso."
-          else
-            echo "CODEBERG_TOKEN ausente, pulando disparo downstream."
-          fi
+          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          curl -s -X POST http://127.0.0.1:4040/api/cascade/dispatch \
+            -H "Content-Type: application/json" \
+            -d "{\"package\": \"joaju-lirica\", \"version\": \"${VERSION}\"}" || echo "::warning::Falha ao notificar Kombinat daemon."
