@@ -16,3 +16,11 @@ Adicionalmente, a crate deve expor a constante canônica `pub const VERSION: &st
 - Fase 4: Teste comprovadamente falho verificando a existência de `VERSION` e a notificação ao Kombinat.
 - Fase 5: Implementação funcional.
 - Fase 8: Testes verdes, clippy limpo, `cccp check --strict`.
+
+## 4. Status de Conclusão
+- [x] Step de disparo ao Codeberg removido de `.forgejo/workflows/ci.yml`.
+- [x] Step de notificação do Kombinat configurado em `.forgejo/workflows/ci.yml`.
+- [x] Script `tests/audit_gitops_cascade.sh` auditado e aprovado.
+- [x] `pub const VERSION: &str` verificado em `src/lib.rs`.
+- [x] Suíte de testes 100% verde (`cargo test`).
+- [x] 100% de conformidade Gosplan (`cccp check --strict`).
