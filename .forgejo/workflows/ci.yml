@@ -35,11 +35,10 @@ jobs:
       - name: "Configure Cargo Registries"
         run: |
           mkdir -p "$HOME/.cargo"
-          printf '[registries.gambi]\nindex = "sparse+https://gambi.2lp.in/api/packages/lumen/cargo/"\n' > "$HOME/.cargo/config.toml"
-          printf '[registries.lumen]\nindex = "sparse+https://gambi.2lp.in/api/packages/lumen/cargo/"\n' >> "$HOME/.cargo/config.toml"
+          printf '[registries.lumen]\nindex = "sparse+https://gambi.2lp.in/api/packages/lumen/cargo/"\n' > "$HOME/.cargo/config.toml"
           TOKEN="${{ secrets.REGISTRY_TOKEN || secrets.GAMBI_2LP_IN_TOKEN || secrets.LUMEN_REGISTRY_TOKEN || secrets.FORGEJO_TOKEN }}"
           if [ -n "$TOKEN" ]; then
-            printf '[registries.gambi]\ntoken = "Bearer %s"\n[registries.lumen]\ntoken = "Bearer %s"\n' "$TOKEN" "$TOKEN" > "$HOME/.cargo/credentials.toml"
+            printf '[registries.lumen]\ntoken = "Bearer %s"\n' "$TOKEN" > "$HOME/.cargo/credentials.toml"
           fi
 
       - name: "Format Check"
@@ -61,7 +60,7 @@ jobs:
           fi
 
   publish-and-cascade:
-    name: "Publish Sovereign Crate & Cascade Downstream"
+    name: "Publish Canonical Crate & Cascade Downstream"
     runs-on: ubuntu-latest
     container:
       image: gambi.2lp.in/lumen/gost-ci-cross:latest
@@ -76,20 +75,23 @@ jobs:
           REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN || secrets.GAMBI_2LP_IN_TOKEN || secrets.LUMEN_REGISTRY_TOKEN || secrets.FORGEJO_TOKEN }}
         run: |
           mkdir -p "$HOME/.cargo"
-          printf '[registries.gambi]\nindex = "sparse+https://gambi.2lp.in/api/packages/lumen/cargo/"\n' > "$HOME/.cargo/config.toml"
-          printf '[registries.lumen]\nindex = "sparse+https://gambi.2lp.in/api/packages/lumen/cargo/"\n' >> "$HOME/.cargo/config.toml"
+          printf '[registries.lumen]\nindex = "sparse+https://gambi.2lp.in/api/packages/lumen/cargo/"\n' > "$HOME/.cargo/config.toml"
           TOKEN="${REGISTRY_TOKEN}"
           if [ -n "$TOKEN" ]; then
-            printf '[registries.gambi]\ntoken = "Bearer %s"\n[registries.lumen]\ntoken = "Bearer %s"\n' "$TOKEN" "$TOKEN" > "$HOME/.cargo/credentials.toml"
+            printf '[registries.lumen]\ntoken = "Bearer %s"\n' "$TOKEN" > "$HOME/.cargo/credentials.toml"
           fi
 
       - name: "Publish Crate to Lumen Registry"
         run: |
-          cargo publish --registry gambi --allow-dirty || cargo publish --registry lumen --allow-dirty || echo "::warning::Versao ja publicada ou falha tolerada no registry."
+          cargo publish --registry lumen --allow-dirty || echo "::warning::Versao ja publicada ou falha tolerada no registry."
 
       - name: "Notify Kombinat Daemon of Release Cascade"
         run: |
-          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          VERSION=$(cargo metadata --no-deps --format-version 1 | python3 -c "import sys, json; print(json.load(sys.stdin)['packages'][0]['version'])")
           curl -s -X POST http://127.0.0.1:4040/api/cascade/dispatch \
             -H "Content-Type: application/json" \
-            -d "{\"package\": \"joaju-lirica\", \"version\": \"${VERSION}\"}" || echo "::warning::Falha ao notificar Kombinat daemon."
+            -d "{\"package\": \"joaju-lirica\", \"version\": \"${VERSION}\"}" || \
+          curl -s -X POST http://172.17.0.1:4040/api/cascade/dispatch \
+            -H "Content-Type: application/json" \
+            -d "{\"package\": \"joaju-lirica\", \"version\": \"${VERSION}\"}" || \
+          echo "::warning::Falha ao notificar Kombinat daemon."

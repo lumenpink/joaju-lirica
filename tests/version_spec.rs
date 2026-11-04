@@ -26,7 +26,11 @@ fn test_ci_workflow_kombinat_notification_and_no_codeberg() {
         "CI workflow must not use jq command which is missing in CI container"
     );
     assert!(
-        !ci_yaml.contains("[registries.lumen]"),
-        "CI workflow must not configure duplicate lumen registry"
+        !ci_yaml.contains("[registries.gambi]"),
+        "CI workflow must not configure duplicate gambi registry"
+    );
+    assert!(
+        ci_yaml.contains("[registries.lumen]"),
+        "CI workflow must configure lumen registry"
     );
 }
