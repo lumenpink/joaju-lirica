@@ -21,4 +21,12 @@ fn test_ci_workflow_kombinat_notification_and_no_codeberg() {
         !ci_yaml.contains("codeberg.org/api/v1/repos"),
         "CI workflow must not contain legacy Codeberg dispatch"
     );
+    assert!(
+        !ci_yaml.contains("jq "),
+        "CI workflow must not use jq command which is missing in CI container"
+    );
+    assert!(
+        !ci_yaml.contains("[registries.lumen]"),
+        "CI workflow must not configure duplicate lumen registry"
+    );
 }
