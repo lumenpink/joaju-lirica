@@ -2,6 +2,7 @@
 
 **Ticket:** #19  
 **Branch:** `feat/19-dafsa-ampla-de-lexico-geral-embutido`  
+**Status:** Implementado / Concluído  
 **Escopo:** `joaju-lirica` (DAFSA / FST em bytes comprimidos, base léxica de $\ge 100.000$ termos, lookup estático e validação no gabarito canônico)
 
 ---
