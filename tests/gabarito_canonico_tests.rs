@@ -300,3 +300,67 @@ fn test_contraprova_gabarito_desvio_detectado() {
         "Observação deve apontar o dístico não-rimado"
     );
 }
+
+#[test]
+fn test_classificacao_rimas_gabarito_canonico() {
+    let json_data = include_str!("corpus/gabarito_canonico.json");
+    let gabarito: Vec<PoemaGabarito> = serde_json::from_str(json_data).unwrap();
+
+    let mut total_pares = 0;
+    let mut total_pobres = 0;
+    let mut total_ricas = 0;
+    let mut total_preciosas = 0;
+    let mut total_indeterminadas = 0;
+
+    for poema in &gabarito {
+        let relatorio = joaju_lirica::morphology::classificar_rimas_poema(&poema.texto);
+        for estrofe in &relatorio.estrofes {
+            for par in &estrofe.pares_avaliados {
+                total_pares += 1;
+                match par.classificacao {
+                    joaju_lirica::morphology::QualidadeRima::Pobre => total_pobres += 1,
+                    joaju_lirica::morphology::QualidadeRima::Rica => total_ricas += 1,
+                    joaju_lirica::morphology::QualidadeRima::Preciosa => total_preciosas += 1,
+                    joaju_lirica::morphology::QualidadeRima::Rara => total_pobres += 1,
+                    joaju_lirica::morphology::QualidadeRima::Indeterminada { .. } => {
+                        total_indeterminadas += 1
+                    }
+                }
+            }
+        }
+    }
+
+    assert!(
+        total_pares >= 100,
+        "Deve avaliar pelo menos 100 pares de rima no gabarito, avaliou {}",
+        total_pares
+    );
+    assert!(total_ricas > 0, "Deve haver rimas ricas identificadas");
+    assert!(total_pobres > 0, "Deve haver rimas pobres identificadas");
+    assert!(
+        total_indeterminadas < total_pares,
+        "Rimas indeterminadas ({}) devem ser minoria perante o total ({})",
+        total_indeterminadas,
+        total_pares
+    );
+    let _ = total_preciosas;
+
+    // Validação específica para o soneto clássico de Camões:
+    let camoes = gabarito
+        .iter()
+        .find(|p| p.id == "camoes_amor_e_fogo")
+        .expect("Deve encontrar camoes_amor_e_fogo");
+    let rel_camoes = joaju_lirica::morphology::classificar_rimas_poema(&camoes.texto);
+    let q1 = &rel_camoes.estrofes[0];
+    assert_eq!(q1.esquema, "ABBA");
+    // (V1, V4) = ver x doer -> Pobre (Verbo x Verbo)
+    assert_eq!(
+        q1.pares_avaliados[0].classificacao,
+        joaju_lirica::morphology::QualidadeRima::Pobre
+    );
+    // (V2, V3) = sente x descontente -> Rica (Verbo x Adjetivo)
+    assert_eq!(
+        q1.pares_avaliados[1].classificacao,
+        joaju_lirica::morphology::QualidadeRima::Rica
+    );
+}

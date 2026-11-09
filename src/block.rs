@@ -89,6 +89,8 @@ pub struct Poema {
     pub estrofes: Vec<Estrofe>,
     /// Overall detected rhyme scheme (e.g. "ABBA", "ABCB").
     pub esquema_rima: Option<String>,
+    /// Detailed morphological rhyme quality classification and audit trace.
+    pub rimas_classificadas: Option<crate::morphology::RelatorioRimasPoema>,
 }
 
 /// Parses a `lirica` block containing optional `%%` headers followed by verses.
@@ -194,11 +196,18 @@ pub fn parse_lirica_block(bloco: &str) -> Result<(PoemaConfig, Poema), LiricaErr
         });
     }
 
+    let rimas_classificadas = if config.analisar_rima && !verse_lines.is_empty() {
+        Some(crate::morphology::classificar_rimas_poema(bloco))
+    } else {
+        None
+    };
+
     let poem = Poema {
         versos,
         linhas_originais: verse_lines.clone(),
         estrofes,
         esquema_rima: poem_esquema_rima,
+        rimas_classificadas,
     };
 
     Ok((config, poem))

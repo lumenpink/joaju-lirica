@@ -175,3 +175,17 @@ Amor é fogo que arde sem se ver,
     assert_eq!(par2.tokens, ("sente".to_string(), "descontente".to_string()));
     assert_eq!(par2.classificacao, QualidadeRima::Rica);
 }
+
+#[test]
+fn test_camoes_jacob_rima_preciosa_ve_la() {
+    let estrofe2 = "Os dias, na esperança de um só dia,\nPassava, contentando-se com vê-la;\nPorém o pai, usando de cautela,\nEm lugar de Raquel lhe dava Lia.";
+    let rel = classificar_rimas_poema(estrofe2);
+    let e0 = &rel.estrofes[0];
+    assert_eq!(e0.esquema, "ABBA");
+
+    // Par (2, 3) = vê-la x cautela -> Preciosa por assimetria de ênclise!
+    let par = &e0.pares_avaliados[1];
+    assert_eq!(par.versos, (2, 3));
+    assert_eq!(par.tokens, ("vê-la".to_string(), "cautela".to_string()));
+    assert_eq!(par.classificacao, QualidadeRima::Preciosa);
+}

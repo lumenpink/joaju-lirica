@@ -7,6 +7,7 @@
 
 pub mod block;
 pub mod classifier;
+pub mod morphology;
 pub mod phonotactics;
 pub mod poetic_form;
 pub mod rhyme;
@@ -19,6 +20,11 @@ pub use block::{
     PoemaConfig,
 };
 pub use classifier::{classificar_ritmo, icone_metro};
+pub use morphology::{
+    avaliar_par_rima, classificar_rimas_poema, extrair_token_rimante, EstrofeRimas,
+    IndeterminadoMotivo, JustificativaAuditoria, ParRimaAvaliado, PosMask, QualidadeRima,
+    RelatorioRimasPoema, TokenRimante,
+};
 pub use poetic_form::{avaliar_forma_poetica, DiagnosticoForma};
 pub use rhyme::{
     analisar_esquema_rimas, avaliar_qualidade_rimas, extrair_terminacao_rima, InfoAvaliacaoRima,
@@ -93,11 +99,18 @@ pub fn escandir_poema(
         });
     }
 
+    let rimas_classificadas = if analisar_rima && !linhas.is_empty() {
+        Some(crate::morphology::classificar_rimas_poema(texto))
+    } else {
+        None
+    };
+
     Poema {
         versos,
         linhas_originais: linhas,
         estrofes,
         esquema_rima,
+        rimas_classificadas,
     }
 }
 
