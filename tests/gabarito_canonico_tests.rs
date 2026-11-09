@@ -330,6 +330,18 @@ fn test_classificacao_rimas_gabarito_canonico() {
         }
     }
 
+    println!(
+        "\n★ ESTATÍSTICA DE RIMAS NO GABARITO CANÔNICO (55 POEMAS):\n  • Total de Pares: {}\n  • Rimas Pobres: {} ({:.1}%)\n  • Rimas Ricas: {} ({:.1}%)\n  • Rimas Preciosas: {}\n  • Indeterminadas: {} ({:.1}%)\n",
+        total_pares,
+        total_pobres,
+        (total_pobres as f64 / total_pares as f64) * 100.0,
+        total_ricas,
+        (total_ricas as f64 / total_pares as f64) * 100.0,
+        total_preciosas,
+        total_indeterminadas,
+        (total_indeterminadas as f64 / total_pares as f64) * 100.0
+    );
+
     assert!(
         total_pares >= 100,
         "Deve avaliar pelo menos 100 pares de rima no gabarito, avaliou {}",
