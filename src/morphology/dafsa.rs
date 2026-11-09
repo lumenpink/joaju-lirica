@@ -400,13 +400,30 @@ const TABELA_CANONICA: &[(&str, PosMask)] = &[
     ("é", PosMask::VERBO),
 ];
 
-/// Consulta léxica exata no catálogo canônico via busca binária.
+static FST_BYTES: &[u8] = include_bytes!("data/lexicon_pt.bin");
+static FST_MAP: std::sync::OnceLock<fst::Map<&'static [u8]>> = std::sync::OnceLock::new();
+
+fn get_fst_map() -> &'static fst::Map<&'static [u8]> {
+    FST_MAP.get_or_init(|| {
+        fst::Map::new(FST_BYTES).expect("Blob lexicon_pt.bin corrompido ou incompatível")
+    })
+}
+
+/// Consulta léxica exata no catálogo canônico e no autômato FST amplo.
 pub fn consultar_lexico(palavra: &str) -> Option<PosMask> {
     let lower = palavra.to_lowercase();
-    match TABELA_CANONICA.binary_search_by_key(&lower.as_str(), |&(k, _)| k) {
-        Ok(idx) => Some(TABELA_CANONICA[idx].1),
-        Err(_) => None,
+
+    // 1. Prioridade para a tabela canônica com overrides estritos
+    if let Ok(idx) = TABELA_CANONICA.binary_search_by_key(&lower.as_str(), |&(k, _)| k) {
+        return Some(TABELA_CANONICA[idx].1);
     }
+
+    // 2. Consulta no autômato FST amplo (> 1.000.000 termos)
+    if let Some(val) = get_fst_map().get(lower.as_bytes()) {
+        return PosMask::from_bits(val as u16);
+    }
+
+    None
 }
 
 #[cfg(test)]

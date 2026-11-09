@@ -37,6 +37,16 @@ impl PosMask {
         Self(0)
     }
 
+    /// Constrói uma máscara a partir de bits brutos se forem válidos (<= 0x03FF).
+    #[inline(always)]
+    pub const fn from_bits(bits: u16) -> Option<Self> {
+        if bits <= 0x03FF {
+            Some(Self(bits))
+        } else {
+            None
+        }
+    }
+
     /// Retorna `true` se nenhum bit de classe morfológica estiver ativo.
     #[inline(always)]
     pub const fn is_empty(&self) -> bool {

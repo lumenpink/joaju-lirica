@@ -9,6 +9,7 @@
 .cache/
 *.tmp
 *.log
+*.tsv
 .DS_Store
 
 # Metadados de agentes locais

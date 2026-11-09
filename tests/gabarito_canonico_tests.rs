@@ -323,7 +323,7 @@ fn test_classificacao_rimas_gabarito_canonico() {
                     joaju_lirica::morphology::QualidadeRima::Preciosa => total_preciosas += 1,
                     joaju_lirica::morphology::QualidadeRima::Rara => total_pobres += 1,
                     joaju_lirica::morphology::QualidadeRima::Indeterminada { .. } => {
-                        total_indeterminadas += 1
+                        total_indeterminadas += 1;
                     }
                 }
             }

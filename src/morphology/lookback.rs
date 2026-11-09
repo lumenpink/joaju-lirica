@@ -32,8 +32,10 @@ pub fn desambiguar_por_contexto(
     }
 
     // R-PRON: Predicação Pessoal Imediata
-    // Se T_{-1} pertence a {eu, tu, ele, ela, nós, vós, eles, elas}
-    if is_pronome_reto(&t_minus_1) && mascara_t0.contains(PosMask::VERBO) {
+    // Se T_{-1} pertence a {retos, oblíquos/clíticos}
+    if (is_pronome_reto(&t_minus_1) || is_clitico_intercalado(&t_minus_1))
+        && mascara_t0.contains(PosMask::VERBO)
+    {
         return (PosMask::VERBO, Some("R-PRON"));
     }
     // Suporte a clítico ou advérbio intercalado: "eu já não canto" ou "ele me ama"
@@ -79,6 +81,30 @@ fn is_determinante(t: &str) -> bool {
             | "uma"
             | "uns"
             | "umas"
+            | "do"
+            | "da"
+            | "dos"
+            | "das"
+            | "no"
+            | "na"
+            | "nos"
+            | "nas"
+            | "pelo"
+            | "pela"
+            | "pelos"
+            | "pelas"
+            | "num"
+            | "numa"
+            | "nuns"
+            | "numas"
+            | "dum"
+            | "duma"
+            | "duns"
+            | "dumas"
+            | "ao"
+            | "aos"
+            | "à"
+            | "às"
             | "meu"
             | "minha"
             | "meus"
