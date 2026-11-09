@@ -229,7 +229,10 @@ fn test_deteccao_rimas_cliche() {
     let poema = "O meu primeiro e desolado amor,\nNa solidão profunda desta dor,\nLateja aflito o pobre coração,\nAlimentando a doce ilusão.";
     let rel = classificar_rimas_poema(poema);
     let p1 = &rel.estrofes[0].pares_avaliados[0]; // amor x dor
-    assert!(p1.eh_cliche, "amor x dor deve ser marcado como clichê no par");
+    assert!(
+        p1.eh_cliche,
+        "amor x dor deve ser marcado como clichê no par"
+    );
     assert!(p1.motivo_cliche.is_some());
 }
 
@@ -241,7 +244,10 @@ fn test_graus_epistemicos_e_rima_rara() {
     let (qual_part, _) = avaliar_par_rima(&t_amada, &t_desejada);
     match qual_part {
         QualidadeRima::ProvavelPobre { .. } => {}
-        other => panic!("Esperava ProvavelPobre para amada x desejada, obteve: {:?}", other),
+        other => panic!(
+            "Esperava ProvavelPobre para amada x desejada, obteve: {:?}",
+            other
+        ),
     }
 
     // 2. Verbo categórico x termo com homografia verbal secundária -> ProvavelRica
@@ -250,7 +256,10 @@ fn test_graus_epistemicos_e_rima_rara() {
     let (qual_hom, _) = avaliar_par_rima(&t_chora, &t_hora);
     match qual_hom {
         QualidadeRima::ProvavelRica { .. } => {}
-        other => panic!("Esperava ProvavelRica para chora x hora, obteve: {:?}", other),
+        other => panic!(
+            "Esperava ProvavelRica para chora x hora, obteve: {:?}",
+            other
+        ),
     }
 
     // 3. Rima Rara por escassez fonológica de terminação

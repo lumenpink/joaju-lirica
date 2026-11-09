@@ -196,8 +196,8 @@ fn is_terminacao_rara(p1: &str, p2: &str) -> bool {
     const SUFIXOS_RAROS: &[&str] = &[
         "austro", "austros", "austra", "austras", "urbe", "urbes", "esbio", "ésbio", "esbios",
         "ésbios", "esbia", "ésbia", "efiro", "éfiro", "efiros", "éfiros", "pelago", "pélago",
-        "pelagos", "pélagos", "cubico", "cúbico", "cubicos", "cúbicos", "fago", "fagos",
-        "fenix", "fênix", "helix", "hélix", "calix", "cálix",
+        "pelagos", "pélagos", "cubico", "cúbico", "cubicos", "cúbicos", "fago", "fagos", "fenix",
+        "fênix", "helix", "hélix", "calix", "cálix",
     ];
     let l1 = p1.to_lowercase();
     let l2 = p2.to_lowercase();
@@ -387,7 +387,8 @@ pub fn avaliar_par_rima(
     {
         return (
             QualidadeRima::ProvavelPobre {
-                justificativa: "Par formado por substantivos de mesma derivação sufixal".to_string(),
+                justificativa: "Par formado por substantivos de mesma derivação sufixal"
+                    .to_string(),
             },
             JustificativaAuditoria::HipoteseProvavel(
                 "Convergência morfológica por sufixo nominal".to_string(),
@@ -452,8 +453,7 @@ pub fn avaliar_par_rima(
     }
 
     // 5f. Ambos os termos são predominantemente nominais
-    if is_termo_predominantemente_nominal(&t1.base)
-        && is_termo_predominantemente_nominal(&t2.base)
+    if is_termo_predominantemente_nominal(&t1.base) && is_termo_predominantemente_nominal(&t2.base)
     {
         return (
             QualidadeRima::ProvavelPobre {
@@ -462,9 +462,7 @@ pub fn avaliar_par_rima(
                     t1.texto, t2.texto
                 ),
             },
-            JustificativaAuditoria::HipoteseProvavel(
-                "Convergência nominal mútua".to_string(),
-            ),
+            JustificativaAuditoria::HipoteseProvavel("Convergência nominal mútua".to_string()),
         );
     }
 
