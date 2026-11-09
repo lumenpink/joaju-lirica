@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|| "scripts/lexicon_entries.tsv".to_string());
     let output_path = std::env::args()
         .nth(2)
-        .unwrap_or_else(|| "src/morphology/data/lexicon_pt.bin".to_string());
+        .unwrap_or_else(|| "src/morphology/data/lexicon_pt.fst".to_string());
 
     let file = File::open(&input_path)?;
     let reader = BufReader::new(file);

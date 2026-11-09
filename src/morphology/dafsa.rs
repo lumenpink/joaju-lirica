@@ -400,7 +400,7 @@ const TABELA_CANONICA: &[(&str, PosMask)] = &[
     ("é", PosMask::VERBO),
 ];
 
-static FST_BYTES: &[u8] = include_bytes!("data/lexicon_pt.bin");
+static FST_BYTES: &[u8] = include_bytes!("data/lexicon_pt.fst");
 static FST_MAP: std::sync::OnceLock<fst::Map<&'static [u8]>> = std::sync::OnceLock::new();
 
 fn get_fst_map() -> &'static fst::Map<&'static [u8]> {
