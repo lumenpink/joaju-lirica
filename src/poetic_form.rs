@@ -83,6 +83,16 @@ pub fn avaliar_forma_poetica(poema: &Poema) -> Option<DiagnosticoForma> {
         candidatos.push(diag);
     }
 
+    // 9. Sonetilha / Sonetino (14 versos em Redondilha Maior ou Menor)
+    if let Some(diag) = avaliar_sonetilha(poema, &esquema, &estrofes_layout, &layout_str) {
+        candidatos.push(diag);
+    }
+
+    // 10. Septilha de Cordel (7 versos em Redondilha Maior)
+    if let Some(diag) = avaliar_septilha(poema, &esquema, &estrofes_layout, &layout_str) {
+        candidatos.push(diag);
+    }
+
     // Retorna o candidato com maior confiança
     candidatos
         .into_iter()
@@ -225,6 +235,11 @@ fn avaliar_soneto_italiano(
         .iter()
         .filter(|v| v.total_metricas == 12)
         .count();
+
+    if decassilabos == 0 && alexandrinos == 0 {
+        return None;
+    }
+
     let alvo_metro = if alexandrinos > decassilabos { 12 } else { 10 };
     let nome_metro = if alvo_metro == 12 {
         "Alexandrino (12 sílabas)"
@@ -299,6 +314,15 @@ fn avaliar_soneto_ingles(
         return None;
     }
 
+    let decassilabos = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas == 10)
+        .count();
+    if decassilabos == 0 {
+        return None;
+    }
+
     let mut score: f32 = 0.0;
     let mut obs = Vec::new();
 
@@ -307,22 +331,21 @@ fn avaliar_soneto_ingles(
         score += 20.0;
     } else {
         score += 20.0 * (1.0 - (total as f32 - 14.0).abs() / 14.0).max(0.0);
+        obs.push(format!("Possui {} versos em vez dos 14 exigidos para o soneto.", total));
     }
 
     if estrofes_layout == [4, 4, 4, 2] {
         score += 15.0;
     } else if estrofes_layout.len() == 1 {
         score += 7.0;
+        obs.push("Versos agrupados em bloco único sem separação por linhas em branco em três quartetos e dístico final.".to_string());
     } else {
         score += 4.0;
+        obs.push(format!("Divisão estrófica ({}) desvia do padrão clássico 4 + 4 + 4 + 2 (três quartetos e um dístico de ouro final).", layout_str));
     }
 
     // 2. Métrica (peso 35%): Decassílabo
-    let conformes = poema
-        .versos
-        .iter()
-        .filter(|v| v.total_metricas == 10)
-        .count();
+    let conformes = decassilabos;
     score += 35.0 * (conformes as f32 / total as f32);
 
     for (idx, v) in poema.versos.iter().enumerate() {
@@ -335,19 +358,54 @@ fn avaliar_soneto_ingles(
         }
     }
 
-    // 3. Rimas (peso 30%): ABAB CDCD EFEF GG
-    let match1 = comparar_esquemas(esquema, "ABABCDCDXEXFGG");
-    let match2 = comparar_esquemas(esquema, "ABABCDCDCDCDEE");
-    let match_final = match1.max(match2);
+    // 3. Rimas (peso 30%): ABAB CDCD EFEF GG ou Spenseriano ABAB BCBC CDCD EE
+    let match_shakespeariano = comparar_esquemas(esquema, "ABABCDCDEFEFGG");
+    let match_spenseriano = comparar_esquemas(esquema, "ABABBCBCCDCDEE");
+    let match_elisabetano_var = comparar_esquemas(esquema, "ABABABABCDCDEE")
+        .max(comparar_esquemas(esquema, "ABABCDCDCDCDEE"));
+
+    let eh_spenseriano = match_spenseriano > match_shakespeariano && match_spenseriano >= 0.85;
+
+    let match_final = match_shakespeariano
+        .max(match_spenseriano)
+        .max(match_elisabetano_var);
     score += 30.0 * match_final;
+
+    if total == 14 && esquema.len() >= 14 {
+        let chars: Vec<char> = esquema.chars().collect();
+        if chars[12] != chars[13] {
+            obs.push("O dístico final (versos 13 e 14) não rima entre si, quebrando o fecho característico do soneto inglês.".to_string());
+        }
+    }
+
+    if match_final < 0.90 && !esquema.is_empty() {
+        obs.push(format!(
+            "Esquema de rimas '{}' apresenta variações em relação aos modelos clássicos elisabetanos (ABAB CDCD EFEF GG ou ABAB BCBC CDCD EE).",
+            esquema
+        ));
+    }
 
     let final_score = score.round().clamp(0.0, 100.0) as u8;
     if final_score >= 45 {
+        let (nome, desc, padrao) = if eh_spenseriano {
+            (
+                "Soneto Inglês (Spenseriano)".to_string(),
+                "Soneto elisabetano consagrado por Edmund Spenser: 14 versos decassílabos distribuídos em três quartetos com rimas alternadas entrelaçadas e um dístico de ouro final (4+4+4+2, ABAB BCBC CDCD EE).".to_string(),
+                "14 versos decassílabos (4+4+4+2) | Rimas ABAB BCBC CDCD EE".to_string(),
+            )
+        } else {
+            (
+                "Soneto Inglês (Shakespeariano)".to_string(),
+                "Soneto elisabetano consagrado por William Shakespeare: 14 versos decassílabos distribuídos em três quartetos com rimas alternadas e um dístico de ouro final (4+4+4+2, ABAB CDCD EFEF GG).".to_string(),
+                "14 versos decassílabos (4+4+4+2) | Rimas ABAB CDCD EFEF GG".to_string(),
+            )
+        };
+
         Some(DiagnosticoForma {
-            nome: "Soneto Inglês (Shakespeariano)".to_string(),
+            nome,
             confianca_percentual: final_score,
-            descricao: "Soneto elisabetano consagrado por William Shakespeare: 14 versos decassílabos distribuídos em três quartetos com rimas alternadas e um dístico de ouro final (4+4+4+2, ABAB CDCD EFEF GG).".to_string(),
-            padrao_esperado: "14 versos decassílabos (4+4+4+2) | Rimas ABAB CDCD EFEF GG".to_string(),
+            descricao: desc,
+            padrao_esperado: padrao,
             estrutura_detectada: layout_str.to_string(),
             observacoes: obs,
         })
@@ -557,6 +615,194 @@ fn avaliar_haicai(
             padrao_esperado: "3 versos (5, 7, 5 sílabas métricas)".to_string(),
             estrutura_detectada: layout_str.to_string(),
             observacoes: Vec::new(),
+        })
+    } else {
+        None
+    }
+}
+
+fn avaliar_sonetilha(
+    poema: &Poema,
+    esquema: &str,
+    estrofes_layout: &[usize],
+    layout_str: &str,
+) -> Option<DiagnosticoForma> {
+    let total = poema.versos.len();
+    if !(12..=16).contains(&total) {
+        return None;
+    }
+
+    let redondilhas_maiores = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas == 7)
+        .count();
+    let redondilhas_menores = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas == 5)
+        .count();
+    let alvo_metro = if redondilhas_menores > redondilhas_maiores { 5 } else { 7 };
+    let conformes = if alvo_metro == 5 { redondilhas_menores } else { redondilhas_maiores };
+
+    if (conformes as f32 / total as f32) < 0.5 {
+        return None;
+    }
+
+    let nome_metro = if alvo_metro == 5 {
+        "Redondilha Menor (5 sílabas)"
+    } else {
+        "Redondilha Maior (7 sílabas)"
+    };
+
+    let mut score: f32 = 0.0;
+    let mut obs = Vec::new();
+
+    // 1. Contagem e Estrofes (peso 35%)
+    if total == 14 {
+        score += 20.0;
+    } else {
+        score += 20.0 * (1.0 - (total as f32 - 14.0).abs() / 14.0).max(0.0);
+        obs.push(format!("Possui {} versos em vez dos 14 exigidos.", total));
+    }
+
+    if estrofes_layout == [4, 4, 3, 3] || estrofes_layout == [4, 4, 4, 2] {
+        score += 15.0;
+    } else if estrofes_layout.len() == 1 {
+        score += 7.0;
+        obs.push("Versos agrupados em bloco único sem separação por estrofes.".to_string());
+    } else {
+        score += 5.0;
+        obs.push(format!("Divisão estrófica ({}) desvia do padrão clássico de sonetilha (4+4+3+3 ou 4+4+4+2).", layout_str));
+    }
+
+    // 2. Métrica (peso 35%)
+    score += 35.0 * (conformes as f32 / total as f32);
+    for (idx, v) in poema.versos.iter().enumerate() {
+        if v.total_metricas != alvo_metro {
+            obs.push(format!(
+                "Verso {} possui {} sílabas métricas em vez de {} ({}).",
+                idx + 1,
+                v.total_metricas,
+                alvo_metro,
+                nome_metro
+            ));
+        }
+    }
+
+    // 3. Rimas (peso 30%)
+    let padroes_sonetilha = [
+        "ABBAABBACDCDCD",
+        "ABBAABBACDECDE",
+        "ABBAABBACDEDCE",
+        "ABBAABBACDEDEC",
+        "ABABABABCDCDCD",
+        "ABABABABCDECDE",
+        "ABABCDCDEFEFEF",
+        "ABABCDCDEFEFGG",
+    ];
+
+    let mut melhor_match: f32 = 0.0;
+    for &padrao in &padroes_sonetilha {
+        let m = comparar_esquemas(esquema, padrao);
+        if m > melhor_match {
+            melhor_match = m;
+        }
+    }
+    score += 30.0 * melhor_match;
+
+    if melhor_match < 0.85 && !esquema.is_empty() {
+        obs.push(format!("Esquema de rimas '{}' apresenta variações em relação aos modelos clássicos de sonetilha.", esquema));
+    }
+
+    let final_score = score.round().clamp(0.0, 100.0) as u8;
+    if final_score >= 45 {
+        Some(DiagnosticoForma {
+            nome: "Sonetilha (Sonetino)".to_string(),
+            confianca_percentual: final_score,
+            descricao: format!("Forma lírica fixa correspondente ao soneto composto em versos de arte menor: 14 versos em {} organizados em quartetos e tercetos (4+4+3+3 ou 4+4+4+2).", nome_metro),
+            padrao_esperado: format!("14 versos em {} (4+4+3+3 ou 4+4+4+2)", nome_metro),
+            estrutura_detectada: layout_str.to_string(),
+            observacoes: obs,
+        })
+    } else {
+        None
+    }
+}
+
+fn avaliar_septilha(
+    poema: &Poema,
+    esquema: &str,
+    _estrofes_layout: &[usize],
+    layout_str: &str,
+) -> Option<DiagnosticoForma> {
+    let total = poema.versos.len();
+    if !(6..=8).contains(&total) {
+        return None;
+    }
+
+    let mut score = 35.0 * (1.0 - (total as f32 - 7.0).abs() / 7.0).max(0.0);
+    let mut obs = Vec::new();
+
+    if total != 7 {
+        obs.push(format!("Possui {} versos em vez dos 7 exigidos para a septilha.", total));
+    }
+
+    let redondilhas = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas == 7)
+        .count();
+    score += 35.0 * (redondilhas as f32 / total as f32);
+
+    for (idx, v) in poema.versos.iter().enumerate() {
+        if v.total_metricas != 7 {
+            obs.push(format!(
+                "Verso {} possui {} sílabas métricas em vez de 7 (Redondilha Maior).",
+                idx + 1,
+                v.total_metricas
+            ));
+        }
+    }
+
+    // Rimas da Septilha clássica de cordel:
+    // Padrão canônico: versos 2, 4 e 7 rimam entre si (A); versos 5 e 6 rimam entre si (B) -> XAXABBA
+    let match_rima = if esquema.len() >= 7 {
+        let chars: Vec<char> = esquema.chars().collect();
+        let pares_2_4_7 = chars[1] == chars[3] && chars[3] == chars[6];
+        let emparelhados_5_6 = chars[4] == chars[5];
+
+        if pares_2_4_7 && emparelhados_5_6 {
+            1.0
+        } else if (chars[1] == chars[3] && chars[3] == chars[6]) || (chars[1] == chars[3] && emparelhados_5_6) {
+            0.75
+        } else if chars[1] == chars[3] || emparelhados_5_6 {
+            0.5
+        } else {
+            0.2
+        }
+    } else {
+        0.3
+    };
+
+    if match_rima < 1.0 && !esquema.is_empty() {
+        obs.push(format!(
+            "Esquema de rimas '{}' desvia da septilha clássica de cordel (versos 2, 4 e 7 rimam entre si, com versos 5 e 6 emparelhados).",
+            esquema
+        ));
+    }
+
+    score += 30.0 * match_rima;
+
+    let final_score = score.round().clamp(0.0, 100.0) as u8;
+    if final_score >= 50 {
+        Some(DiagnosticoForma {
+            nome: "Septilha de Cordel".to_string(),
+            confianca_percentual: final_score,
+            descricao: "Modalidade consagrada da literatura de cordel e repente: estrofe de 7 versos em Redondilha Maior (7 sílabas) com rimas nos versos pares 2, 4 e 7, e rima emparelhada nos versos 5 e 6 (XAXABBA).".to_string(),
+            padrao_esperado: "7 versos em Redondilha Maior (7s) | Rimas XAXABBA (2, 4, 7 e 5-6)".to_string(),
+            estrutura_detectada: layout_str.to_string(),
+            observacoes: obs,
         })
     } else {
         None

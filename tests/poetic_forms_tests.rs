@@ -73,14 +73,14 @@ Outro segundo segue com rigor,
 Terceiro verso vem para rimar,
 Quarto termina a quadra com valor.
 
-Quinto retoma o ritmo a cantar,
+Quinto retoma o bom ritmo a cantar,
 Sexto introduz um clima de fervor,
 Sétimo busca o leitor encantar,
 Oitavo fecha a quadra com louvor.
 
 Nono prossegue a marcha musical,
 Décimo traz a chama do saber,
-O verso onze brilha no final,
+O verso onze rebrilha no final,
 Doze completa o quadro a resplender.
 
 Por fim o par resume a perfeição,
@@ -143,23 +143,23 @@ Sangue, suor ou sêmen é sagrado?";
 fn test_soneto_spenseriano_100_por_cento() {
     // Soneto Spenseriano: 14 versos decassílabos em 4+4+4+2 com rimas entrelaçadas ABAB BCBC CDCD EE
     let texto = "\
-Verso primeiro para começar,
-Outro segundo segue com rigor,
-Terceiro verso vem para rimar,
-Quarto termina a quadra com valor.
+Um dia escrevi seu nome na areia,
+Porém a onda logo o arrebatou;
+Mais uma vez a minha mão alteia,
+Mas outra vaga o rastro devorou.
 
-Quinto retoma o verso do valor,
-Sexto introduz um clima de cantar,
-Sétimo busca o ritmo de amor,
-Oitavo fecha a quadra a ressoar.
+Mulher mortal em vão já pelejou,
+Disse ela então com seu tão triste olhar:
+Pois o meu ser a cinza já levou,
+E o tempo o meu perfil há de apagar.
 
-Nono prossegue o verso a ressoar,
-Décimo traz a chama do saber,
-O verso onze brilha sem cessar,
-Doze completa o quadro a resplender.
+Não há de ser, respondo ao teu cantar,
+Pois na canção teu brilho viverá,
+E os céus verão a música ecoar,
+Onde minh'alma sempre brilhará.
 
-Por fim o par resume a perfeição,
-Fechando a peça com nobre canção.";
+Quando este chão for puro e bem perfeito,
+Nosso amor dormirá em santo leito.";
 
     let poema = escandir_poema(texto, false, false, true, true);
     let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Soneto Inglês (Shakespeariano / Spenseriano)");
@@ -218,14 +218,14 @@ Cansado de navegar.
 O vento frio me avisa
 Que a noite vem ao redor;
 Num leve sopro de brisa,
-Cresce no peito a dor.
+Cresce no peito esta dor.
 
 As sombras cobrem a terra,
 O céu perde a claridade;
 A escuridão tudo encerra.
 
 Fica no peito a saudade,
-E a dor que a alma aferra,
+Toda a dor que a alma aferra,
 Chora na calma cidade.";
 
     let poema = escandir_poema(texto, false, false, true, true);
@@ -239,15 +239,15 @@ Chora na calma cidade.";
 
 #[test]
 fn test_septilha_cordel_100_por_cento() {
-    // 7 versos em Redondilha Maior (7 sílabas métricas), rimas nos versos pares e fecho emparelhado (XAXABBX ou ABABCCA)
+    // 7 versos em Redondilha Maior (7 sílabas métricas), rimas nos versos pares e fecho emparelhado (XAXABBA)
     let texto = "\
-Na feira de Caruaru,
-Tem arte de toda gente;
-Do boneco de barro cru,
-Ao verso mais eloquente;
-O poeta canta em frente,
-Com sua viola afamada,
-Para o povo do sertão.";
+O verso de sete linhas
+É bonito e compassado;
+Quem lê com muita atenção
+Fica o leitor encantado;
+Tem beleza e perfeição,
+Tem nobreza no sertão,
+E o verso é bem respeitado.";
 
     let poema = escandir_poema(texto, false, false, true, true);
     let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Septilha de Cordel");

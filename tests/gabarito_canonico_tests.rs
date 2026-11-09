@@ -173,3 +173,85 @@ fn test_vinicius_sonetos_gabarito_100_por_cento() {
         }
     }
 }
+
+#[test]
+fn test_sonetos_shakespeariano_e_spenseriano_gabarito_100_por_cento() {
+    let json_data = include_str!("corpus/gabarito_canonico.json");
+    let gabarito: Vec<PoemaGabarito> = serde_json::from_str(json_data).unwrap();
+
+    let ids = ["profana_shakespeariano", "spenseriano_nome_areia"];
+
+    for id in ids {
+        let p_gab = gabarito.iter().find(|p| p.id == id).expect("Deve encontrar poema");
+        let p = escandir_poema(&p_gab.texto, p_gab.elidir_pontuacao, false, true, true);
+
+        assert_eq!(p.versos.len(), 14);
+        for (i, v) in p.versos.iter().enumerate() {
+            assert_eq!(
+                v.total_metricas, 10,
+                "[{}] verso {} ('{}') deve ter 10 sílabas, teve {}",
+                id, i + 1, p.linhas_originais[i], v.total_metricas
+            );
+        }
+
+        let diag = joaju_lirica::avaliar_forma_poetica(&p).expect("Deve diagnosticar forma");
+        assert!(diag.nome.contains("Soneto Inglês"));
+        assert_eq!(
+            diag.confianca_percentual, 100,
+            "[{}] deve atingir 100% de conformidade, teve {}%",
+            id, diag.confianca_percentual
+        );
+        assert!(
+            diag.observacoes.is_empty(),
+            "[{}] não deve ter observações de desvio: {:?}",
+            id, diag.observacoes
+        );
+    }
+}
+
+#[test]
+fn test_sonetilha_e_cordel_gabarito_100_por_cento() {
+    let json_data = include_str!("corpus/gabarito_canonico.json");
+    let gabarito: Vec<PoemaGabarito> = serde_json::from_str(json_data).unwrap();
+
+    // 1. Sonetilha
+    let p_sonetilha = gabarito.iter().find(|p| p.id == "sonetilha_lirica").unwrap();
+    let p1 = escandir_poema(&p_sonetilha.texto, p_sonetilha.elidir_pontuacao, false, true, true);
+    assert_eq!(p1.versos.len(), 14);
+    let diag1 = joaju_lirica::avaliar_forma_poetica(&p1).unwrap();
+    assert_eq!(diag1.nome, "Sonetilha (Sonetino)");
+    assert_eq!(diag1.confianca_percentual, 100);
+    assert!(diag1.observacoes.is_empty());
+
+    // 2. Septilha de Cordel
+    let p_septilha = gabarito.iter().find(|p| p.id == "septilha_cordel_linhas").unwrap();
+    let p2 = escandir_poema(&p_septilha.texto, p_septilha.elidir_pontuacao, false, true, true);
+    assert_eq!(p2.versos.len(), 7);
+    let diag2 = joaju_lirica::avaliar_forma_poetica(&p2).unwrap();
+    assert_eq!(diag2.nome, "Septilha de Cordel");
+    assert_eq!(diag2.confianca_percentual, 100);
+    assert!(diag2.observacoes.is_empty());
+}
+
+#[test]
+fn test_contraprova_gabarito_desvio_detectado() {
+    let json_data = include_str!("corpus/gabarito_canonico.json");
+    let gabarito: Vec<PoemaGabarito> = serde_json::from_str(json_data).unwrap();
+
+    let p_contra = gabarito.iter().find(|p| p.id == "profana_contraprova_distico").unwrap();
+    let p = escandir_poema(&p_contra.texto, p_contra.elidir_pontuacao, false, true, true);
+    let diag = joaju_lirica::avaliar_forma_poetica(&p).unwrap();
+    assert!(diag.nome.contains("Soneto Inglês"));
+    assert!(
+        diag.confianca_percentual < 100,
+        "Contra-prova com dístico não-rimado não pode ter 100%"
+    );
+    assert!(
+        !diag.observacoes.is_empty(),
+        "Contra-prova deve ter observações de desvio apontadas"
+    );
+    assert!(
+        diag.observacoes.iter().any(|o| o.contains("dístico")),
+        "Observação deve apontar o dístico não-rimado"
+    );
+}
