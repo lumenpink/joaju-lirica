@@ -13,12 +13,12 @@ status: "Ativo / Produção"
 ```
 
 > **Sobre este Perfil:**  
-> O perfil **Lilya** (anteriormente denominado *Lumen*) é a especialização autoral, pessoal e de infraestrutura soberana do padrão **[GOST](https://gost.2lp.in)**.  
-> Ele estende diretamente o perfil base **[Kollontai](https://kollontai.2lp.in)** (`extends: https://kollontai.2lp.in/profile.md`), herdando a autoridade do Maestro **`cccp`**, a matriz de toolchains homologadas e os protocolos de distribuição, aplicando precedência estrita (*deep override*) para a forja soberana em `gambi.2lp.in`, publicação na borda (`*.2lp.in`), catálogo de binários (`banca.2lp.in`), afirmação identitária transfeminista no rodapé e entrega contínua nos servidores `obizero`, `obione` e `obitwo`.
+> O perfil **Lilya** (anteriormente denominado *Lumen*) é a especialização autoral, pessoal e de infraestrutura do padrão **[GOST](https://gost.2lp.in)**.  
+> Ele estende diretamente o perfil base **[Kollontai](https://kollontai.2lp.in)** (`extends: https://kollontai.2lp.in/profile.md`), herdando a autoridade do Maestro **`cccp`**, a matriz de toolchains homologadas e os protocolos de distribuição, aplicando precedência estrita (*deep override*) para a forja canônica em `gambi.2lp.in`, publicação na borda (`*.2lp.in`), catálogo de binários (`banca.2lp.in`), afirmação identitária transfeminista no rodapé e entrega contínua nos servidores `obizero`, `obione` e `obitwo`.
 
 ---
 
-## 1. Identidade, Forja Soberana (`gambi.2lp.in`) e Espelhos
+## 1. Identidade, Forja Canônica (`gambi.2lp.in`) e Espelhos
 
 ### 1.1 Parâmetros Canônicos do Maestro (`.cccprc`)
 No perfil Lilya, o Maestro `cccp` opera com os seguintes parâmetros canônicos de infraestrutura:
@@ -26,7 +26,7 @@ No perfil Lilya, o Maestro `cccp` opera com os seguintes parâmetros canônicos 
 ```ini
 agent_var_lang = portuguese
 
-# Forja Primária Soberana (Forgejo em gambi.2lp.in)
+# Forja Primária Canônica (Forgejo em gambi.2lp.in)
 primary_forge_type = forgejo
 primary_forge_domain = gambi.2lp.in
 primary_owner = lumen
@@ -39,7 +39,7 @@ mirror_owner = lumenpink
 ```
 
 ### 1.2 Topologia de Repositórios e Push Mirrors Duplos
-1. **Forja Primária Soberana:** Hospedada em `https://gambi.2lp.in/lumen/<slug>` (acesso SSH via porta 22 padrão em `git@gambi.2lp.in:lumen/<slug>.git`).
+1. **Forja Primária Canônica:** Hospedada em `https://gambi.2lp.in/lumen/<slug>` (acesso SSH via porta 22 padrão em `git@gambi.2lp.in:lumen/<slug>.git`).
 2. **Push Mirrors Automatizados (`sync_on_commit: true`):** A instância `gambi.2lp.in` replica imediatamente todo push recebido na branch `main` (e tags/branches persistentes) para dois espelhos externos de vitrine e preservação:
    - **Espelho FOSS:** Codeberg (`https://codeberg.org/lumenpink/<slug>`)
    - **Espelho Comunitário:** GitHub (`https://github.com/lumenpink/<slug>`)
@@ -133,21 +133,46 @@ icon = ["site/assets/icon.png"]
 
 ---
 
-## 4. Distribuição de Binários na Banca (`banca.2lp.in`)
+## 4. Distribuição e Catálogo da Banca (`banca.2lp.in` e Cloudflare R2)
 
-A autoridade central de distribuição de executáveis e pacotes definida na Seção 4 do perfil Kollontai reside em **`https://banca.2lp.in`** (servida via Cloudflare R2):
+A autoridade central de distribuição de executáveis e pacotes definida na Seção 4 do perfil Kollontai opera sob o modelo **Produtor–Curador Desacoplado** servido via Cloudflare R2 e publicado na borda:
 
-* **Vitrine Interativa:** `https://banca.2lp.in/downloads/#<slug>` (design brutalista/cyberpunk em Vanilla HTML/CSS/JS, sem frameworks pesados, com cópia rápida de comando `curl` e tabela de hashes SHA-256).
-* **Comando Universal de Instalação:**
+* **Topologia Física de Storage (Cloudflare R2):**
+  Todos os artefatos são mantidos sob o prefixo:
+  ```text
+  banca-artifacts/{app}/{channel}/
+  ```
+  - Artefatos versionados e hashes: `{app}-{versao}-{target}.{ext}` e `.sha256`.
+  - Cópias físicas de aliases sobrescritas: `{app}-latest-{target}.{ext}` (em `stable`) ou `{app}-dev-latest-{target}.{ext}` (em `dev`), juntamente com seus arquivos `.sha256`.
+* **Cotas Operacionais e Política de Retenção Estrita:**
+  - **Canal `stable` (Versão Recomendada):** Retém estritamente as **5 versões mais recentes** (`x.y.z`), com alias canônico `*-latest.*`.
+  - **Canal `dev` (Versão Experimental):** Retém estritamente as **10 versões mais recentes** (`x.y.z-dev.{n}+{YYYYMMDD}.{commit}`), com alias canônico `*-dev-latest.*`.
+  - Artefatos e hashes `.sha256` excedentes que ultrapassarem essas cotas são permanentemente purgados do bucket R2 pela esteira da Banca.
+* **Manifesto Canônico do Catálogo (`catalog.json`):**
+  - O catálogo unificado reside em `https://banca.2lp.in/downloads/catalog.json`, estruturado segundo `catalog.schema.json` com nós `apps.{app}.channels.stable` e `apps.{app}.channels.dev`.
+  - Durante o período de transição, a Banca gera e sincroniza views de compatibilidade retroativa em `https://banca.2lp.in/downloads/<slug>/index.json`.
+* **Comando Universal de Instalação e Vitrine:**
+  - Vitrine: `https://banca.2lp.in/downloads/#<slug>` (design brutalista/cyberpunk em Vanilla HTML/CSS/JS com cópia rápida de comando `curl` e tabela de hashes SHA-256).
   ```sh
   curl -sSf https://banca.2lp.in/downloads/<slug>/install.sh | sh
   ```
-* **Endpoint de Auto-Update:** Os binários CLI consultam `https://banca.2lp.in/downloads/<slug>/<channel>-latest.version` e `index.json` para o protocolo XDG de atualização (`<slug> check-update` / `<slug> update`).
-* **Retenção de Artefatos:** Política estrita de retenção de 5 estáveis e 10 compilações noturnas no Cloudflare R2.
+* **Protocolo de Auto-Update XDG:** Os binários CLI consultam `catalog.json` (com fallback para `index.json` e `<channel>-latest.version`) para o protocolo de auto-atualização (`<slug> check-update` / `<slug> update`).
+* **Tolerância Zero a Links Quebrados:** Se qualquer artefato declarado (novo ou histórico ativo nas cotas 5/10) falhar na verificação de rede ou divergência de checksum SHA-256, o deploy na Cloudflare é abortado imediatamente e um ticket automático é aberto na forja do projeto de origem (`POST /api/v1/repos/{repo_slug}/issues`).
 
 ---
 
-## 5. Entrega Contínua de Servidores (CD em `obizero`, `obione` e `obitwo`)
+## 5. Orquestração Contínua de Dependências e Propagação em Cascata (Kombinat)
+
+Para manter a coesão e a reprodutibilidade do ecossistema de bibliotecas e motores interdependentes registrados na forja primária (`gambi.2lp.in`) e no registro interno (`crates.2lp.in`), o perfil Lilya adota o daemon **Kombinat** como o gestor autônomo de dependências:
+
+### 5.1 O Papel do Daemon Kombinat
+* **Monitoramento Contínuo:** O Kombinat monitora continuamente os eventos de publicação de novos pacotes (`cargo`, `generic`) na forja primária (`gambi.2lp.in`) e no registro de pacotes (`crates.2lp.in`).
+* **Propagação Automatizada em Cascata:** Ao detectar uma nova versão canônica de desenvolvimento publicada a montante (upstream, ex.: `0.2.0-dev.56`), o Kombinat orquestra a propagação dos bumps exatos nos manifestos de compilação dos módulos a jusante (downstream), disparando compilações e suítes de validação em cascata.
+* **Recomendação Sem Trava Mandatória:** A fixação em versões canônicas exatas (`=`) é formalmente **recomendada** (*SHOULD* / *DEVERIA*) para assegurar integridade determinística. De forma estrita e deliberada, **nenhuma trava sintática, bloqueio de build ou restrição de linter** é imposta contra o uso dos aliases de desenvolvimento (`latest-dev`, `X.Y.Z-dev`), preservando a liberdade e a conveniência do consumo prático de aliases.
+
+---
+
+## 6. Entrega Contínua de Servidores (CD em `obizero`, `obione` e `obitwo`)
 
 Para serviços conteinerizados autohospedados, o perfil Lilya opera com **Continuous Deployment (CD) Determinístico** disparado diretamente pela fila `deploy` da esteira em `gambi.2lp.in`, com banimento total do Watchtower.
 
@@ -192,7 +217,7 @@ services:
 
 ---
 
-## 6. Sobreposição de Regras de Conformidade (`lilya_rules.json`)
+## 7. Sobreposição de Regras de Conformidade (`lilya_rules.json`)
 
 Quando o `cccp sync` compila as regras para um repositório sob o perfil Lilya, as seguintes parametrizações específicas sobrepõem (*deep merge*) o `rules.json` base da GOST:
 

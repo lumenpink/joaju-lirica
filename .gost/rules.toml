@@ -1,0 +1,873 @@
+[rules.GOSPLAN-001]
+description = "Every commit must reference an active ticket tag (ref #<id> or closes #<id>)"
+docs_url = "https://gosplan.2lp.in/1.0.0/rules/GOSPLAN-001"
+name = "TICKET-REQUIRED-BEFORE-ACTION"
+scope = "commit-msg"
+script = """
+local commits = gost.git_commits(1)
+if #commits > 0 then
+    local header = commits[1].header or ""
+    if not (header:match("%(ref #%d+") or header:match("%(closes #%d+")) then
+        return false, "ERR_TICKET_TAG_MISSING", { header = header }
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOSPLAN-001.messages]
+ERR_TICKET_TAG_MISSING = "Commit header '{header}' does not reference an active ticket tag"
+
+[rules.GOSPLAN-002]
+description = "Commits in full/short cycles must declare the explicit DD-TDD phase (e.g. - ph3, - ph9)"
+docs_url = "https://gosplan.2lp.in/1.0.0/rules/GOSPLAN-002"
+name = "DD-TDD-PHASE-DISCIPLINE"
+scope = "commit-msg"
+script = """
+local commits = gost.git_commits(1)
+if #commits > 0 then
+    local header = commits[1].header or ""
+    local prefix = header:match("^([a-z]+)") or ""
+    if prefix == "chore" or prefix == "ci" or prefix == "build" then
+        return true
+    end
+    if not header:match("%- ph%d+%)") then
+        return false, "ERR_PHASE_TAG_MISSING", { header = header }
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOSPLAN-002.messages]
+ERR_PHASE_TAG_MISSING = "Commit header '{header}' lacks the canonical DD-TDD phase tag (e.g. - ph5)"
+
+[rules.GOSPLAN-003]
+description = "Phase 9 closing commits must contain a structured report with at least 15 lines and mandatory sections"
+docs_url = "https://gosplan.2lp.in/1.0.0/rules/GOSPLAN-003"
+name = "PHASE-9-REPORT-MANDATORY"
+scope = "commit-msg"
+script = """
+local commits = gost.git_commits(1)
+if #commits > 0 then
+    local header = commits[1].header or ""
+    if header:match("%- ph9%)") then
+        local body = commits[1].body or ""
+        local lines = gost.count_lines(body)
+        if lines < 15 then
+            return false, "ERR_PHASE9_BODY_TOO_SHORT", { lines = lines }
+        end
+        if not (body:match("%[Resumo%]:") 
+            and body:match("%[Solu[çc][ãa]o") 
+            and body:match("%[Decis[õo]es Recusadas%]:") 
+            and body:match("%[Valida[çc][ãa]o%]:")) then
+            return false, "ERR_PHASE9_SECTIONS_MISSING", {}
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOSPLAN-003.messages]
+ERR_PHASE9_BODY_TOO_SHORT = "Phase 9 closing commit body is too short ({lines} lines, minimum required is 15 lines)"
+ERR_PHASE9_SECTIONS_MISSING = "Phase 9 closing commit body missing one or more required sections: [Resumo]:, [Solução]:, [Decisões Recusadas]:, [Validação]:"
+
+[rules.GOSPLAN-004]
+description = "Living docs hygiene: ephemeral or incremental spec files in docs/specs/ are strictly prohibited"
+docs_url = "https://gosplan.2lp.in/1.0.0/rules/GOSPLAN-004"
+name = "LIVING-DOCS-NO-EPHEMERAL-SPECS"
+scope = "project"
+script = """
+if gost.is_dir("docs/specs") then
+    local files = gost.list_files("docs/specs") or {}
+    if #files > 0 then
+        return false, "ERR_EPHEMERAL_SPECS_FORBIDDEN", { count = #files }
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOSPLAN-004.messages]
+ERR_EPHEMERAL_SPECS_FORBIDDEN = "Living docs hygiene violation: found {count} ephemeral spec files in docs/specs/. Specs must be kept in permanent docs/ or ticket comments."
+
+[rules.GOSPLAN-005]
+description = "Documentation topology and SSOT hygiene: documentation must reside in docs/user/ or docs/dev/, and site/ must not contain duplicate content files"
+docs_url = "https://gosplan.2lp.in/1.0.0/rules/GOSPLAN-005"
+name = "DOCS-TOPOLOGY-AND-SSOT"
+scope = "project"
+script = """
+if gost.is_dir("site") then
+    local site_files = gost.list_files("site") or {}
+    for _, file in ipairs(site_files) do
+        if file:match("%.md$") and not file:match("SPEC%.md$") then
+            return false, "ERR_SITE_MD_DUPLICATION", { file = file }
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOSPLAN-005.messages]
+ERR_SITE_MD_DUPLICATION = "SSOT violation: markdown file '{file}' found directly in site/. Documentation content must reside strictly in docs/ or root SPEC.md."
+
+[rules.GOST-001]
+description = "The repository must contain a non-empty LICENSE file in the root directory"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-001"
+name = "LICENSE-EXISTS"
+scope = "root"
+script = """
+if not gost.file_exists("LICENSE") then
+    return false, "ERR_LICENSE_MISSING", {}
+end
+local content = gost.read_file("LICENSE")
+if not content or #content:match("^%s*(.-)%s*$") == 0 then
+    return false, "ERR_LICENSE_EMPTY", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-001.messages]
+ERR_LICENSE_EMPTY = "Root LICENSE file is empty"
+ERR_LICENSE_MISSING = "Root LICENSE file is missing"
+
+[rules.GOST-002]
+description = "The repository root must contain all essential project files (README, CHANGELOG, etc.)"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-002"
+name = "ANATOMY-ROOT-ESSENTIALS"
+scope = "root"
+script = """
+local essentials = {"README.md", "CHANGELOG.md", "VERSION", ".gitignore"}
+local missing = {}
+for _, file in ipairs(essentials) do
+    if not gost.file_exists(file) then
+        table.insert(missing, file)
+    end
+end
+if #missing > 0 then
+    return false, "ERR_ROOT_FILES_MISSING", { files = table.concat(missing, ", ") }
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-002.messages]
+ERR_ROOT_FILES_MISSING = "Essential root files are missing: {files}"
+
+[rules.GOST-003]
+description = "The VERSION file must contain a valid SemVer 2.0 without a 'v' prefix"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-003"
+name = "VERSION-SEMVER-PARITY"
+scope = "root"
+script = """
+if not gost.file_exists("VERSION") then
+    return false, "ERR_VERSION_MISSING", {}
+end
+local ver = gost.read_file("VERSION"):match("^%s*(.-)%s*$")
+if ver:sub(1, 1) == "v" then
+    return false, "ERR_VERSION_V_PREFIX", { version = ver }
+end
+if not ver:match("^%d+%.%d+%.%d+") then
+    return false, "ERR_VERSION_SEMVER_INVALID", { version = ver }
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-003.messages]
+ERR_VERSION_MISSING = "VERSION file is missing"
+ERR_VERSION_SEMVER_INVALID = "Version '{version}' is not a valid SemVer 2.0 string"
+ERR_VERSION_V_PREFIX = "Version '{version}' must not include a 'v' prefix"
+
+[rules.GOST-004]
+description = "Feature and fix commits must tag the DD-TDD phase and ticket reference"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-004"
+name = "COMMIT-PHASE-TAGGING"
+scope = "git"
+script = """
+local commits = gost.git_commits(5)
+for _, c in ipairs(commits) do
+    local header = c.header or ""
+    if (header:match("^feat") or header:match("^fix")) and not (header:match("%(ref #%d+") or header:match("%(closes #%d+")) then
+        return false, "ERR_COMMIT_UNTYPED", { header = header }
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-004.messages]
+ERR_COMMIT_UNTYPED = "Commit header '{header}' does not reference an active ticket tag"
+
+[rules.GOST-005]
+description = "Closing commits must contain structured resolution sections ([Resumo], [Solução], [Validação])"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-005"
+name = "RESOLUTION-REPORT-BODY"
+scope = "git"
+script = """
+local commits = gost.git_commits(1)
+if #commits > 0 then
+    local c = commits[1]
+    if (c.header or ""):match("%(closes #%d+ %- ph9%)") then
+        local body = c.body or ""
+        if not (body:match("%[Resumo%]:") and body:match("%[Solução%]:") and body:match("%[Validação%]:")) then
+            return false, "ERR_RESOLUTION_REPORT_INCOMPLETE", {}
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-005.messages]
+ERR_RESOLUTION_REPORT_INCOMPLETE = "Closing commit (ph9) body lacks mandatory resolution sections"
+
+[rules.GOST-006]
+description = "Working branches must follow standard ticket prefixes (feat/, fix/, chore/, docs/)"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-006"
+name = "BRANCH-DEDICATED-TICKET"
+scope = "git"
+script = """
+local branch = gost.git_branch()
+if branch == "main" or branch:match("^v%d+") or branch:match("^release/") then
+    return true
+end
+if not (branch:match("^feat/%d+") or branch:match("^fix/%d+") or branch:match("^chore/%d+") or branch:match("^docs/%d+")) then
+    return false, "ERR_BRANCH_NAME_INVALID", { branch = branch }
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-006.messages]
+ERR_BRANCH_NAME_INVALID = "Branch '{branch}' is not a canonical ticket branch (expected type/<id>-description)"
+
+[rules.GOST-007]
+description = "Static analysis and linters must execute with zero warnings (-D warnings or strict)"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-007"
+name = "STATIC-ZERO-WARNINGS"
+scope = "ci"
+script = """
+if gost.file_exists(".forgejo/workflows/ci.yml") then
+    local content = gost.read_file(".forgejo/workflows/ci.yml")
+    if not (content:match("%-D warnings") or content:match("%-%-strict") or content:match("deny")) then
+        return false, "ERR_CI_ZERO_WARNINGS_NOT_ENFORCED", {}
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-007.messages]
+ERR_CI_ZERO_WARNINGS_NOT_ENFORCED = "CI workflow does not explicitly enforce zero-warnings policy"
+
+[rules.GOST-008]
+description = "Deterministic code formatting verification must be declared in CI quality gates"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-008"
+name = "FORMAT-DETERMINISTIC"
+scope = "ci"
+script = """
+if gost.file_exists(".forgejo/workflows/ci.yml") then
+    local content = gost.read_file(".forgejo/workflows/ci.yml")
+    if not (content:match("fmt %-%-check") or content:match("format %-%-check") or content:match("prettier %-%-check")) then
+        return false, "ERR_CI_FORMAT_CHECK_MISSING", {}
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-008.messages]
+ERR_CI_FORMAT_CHECK_MISSING = "CI workflow lacks a deterministic format checking step"
+
+[rules.GOST-009]
+description = "Websites and documentation portals must declare security headers in site/_headers"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-009"
+name = "SITE-SECURITY-HEADERS"
+scope = "doc"
+script = """
+if gost.is_dir("site") then
+    if not gost.file_exists("site/_headers") then
+        return false, "ERR_SITE_HEADERS_MISSING", {}
+    end
+    local h = gost.read_file("site/_headers")
+    if not (h:match("X%-Content%-Type%-Options") and h:match("X%-Frame%-Options")) then
+        return false, "ERR_SITE_SECURITY_HEADERS_INCOMPLETE", {}
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-009.messages]
+ERR_SITE_HEADERS_MISSING = "Site directory exists but site/_headers security policy is missing"
+ERR_SITE_SECURITY_HEADERS_INCOMPLETE = "site/_headers is missing essential security headers (X-Content-Type-Options, etc.)"
+
+[rules.GOST-010]
+description = "CI pipelines must reside in a single hermetic .forgejo/workflows/ci.yml file"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-010"
+name = "CI-HERMETIC-WORKFLOW"
+scope = "ci"
+script = """
+if not gost.file_exists(".forgejo/workflows/ci.yml") then
+    return false, "ERR_CI_WORKFLOW_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-010.messages]
+ERR_CI_WORKFLOW_MISSING = "Hermetic CI workflow '.forgejo/workflows/ci.yml' is missing"
+
+[rules.GOST-011]
+description = "Documentation packages should provide internationalized translations"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-011"
+name = "INTL-PARITY"
+scope = "doc"
+script = """
+if gost.is_dir("specs/locales") or gost.is_dir("locales") then
+    return true
+end
+return true
+"""
+severity = "warning"
+
+[rules.GOST-011.messages]
+ERR_LOCALES_MISSING = "Translation locales directory is missing"
+
+[rules.GOST-012]
+description = "Portal banners must adhere to standard 1200x630 aspect ratio and Safe Zone"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-012"
+name = "BANNER-AND-OG-PARITY"
+scope = "doc"
+script = """
+if gost.file_exists("site/assets/banner.png") or gost.file_exists("assets/banner.png") then
+    return true
+end
+return true
+"""
+severity = "warning"
+
+[rules.GOST-012.messages]
+ERR_BANNER_MISSING = "Project banner artifact is missing in site/assets/"
+
+[rules.GOST-013]
+description = "Applications must strictly follow the XDG Base Directory specification"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-013"
+name = "XDG-BASE-DIRECTORY-SPEC"
+scope = "src"
+script = """
+if gost.is_dir("src") then
+    return true
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-013.messages]
+ERR_XDG_VIOLATION = "Application writes state or configuration outside of XDG directory paths"
+
+[rules.GOST-014]
+description = "CLI utilities must provide standard update check interfaces"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-014"
+name = "CLI-AUTO-UPDATE-CONTRACT"
+scope = "src"
+script = """
+if gost.file_exists("Cargo.toml") or gost.file_exists("package.json") then
+    return true
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-014.messages]
+ERR_CLI_UPDATE_MISSING = "CLI lacks standard update command contracts"
+
+[rules.GOST-015]
+description = "Legacy or conflicting container orchestrations must not pollute the root directory"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-015"
+name = "OCI-COMPOSE-PURE"
+scope = "root"
+script = """
+if gost.file_exists("docker-compose.yml") then
+    return false, "ERR_LEGACY_DOCKER_COMPOSE", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-015.messages]
+ERR_LEGACY_DOCKER_COMPOSE = "Legacy 'docker-compose.yml' detected in root directory (use standard compose.yml or clean stacks)"
+
+[rules.GOST-020]
+description = "The README.md file must not exceed {max} lines"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-020"
+name = "README-MAX-LINES"
+scope = "root"
+script = """
+local max_lines = 50
+local lines = gost.count_lines("README.md")
+if lines > max_lines then
+    return false, "ERR_README_EXCEEDED", { count = lines, max = max_lines }
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-020.messages]
+ERR_README_EXCEEDED = "README exceeds standard ceiling of {max} lines (contains {count} lines)"
+
+[rules.GOST-024]
+description = "Compiled binary executables and heavy packages must not be committed to Git"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-024"
+name = "ZERO-BINARIES-IN-GIT"
+scope = "root"
+script = """
+local extensions = {"%.apk$", "%.exe$", "%.bin$", "%.so$", "%.dylib$"}
+local files = gost.list_files(".", true)
+for _, file in ipairs(files) do
+    if not file:match("^%.git/") and not file:match("^site/") then
+        for _, ext in ipairs(extensions) do
+            if file:match(ext) then
+                return false, "ERR_BINARY_IN_GIT", { file = file }
+            end
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-024.messages]
+ERR_BINARY_IN_GIT = "Compiled binary artifact '{file}' detected in Git repository"
+
+[rules.GOST-025]
+description = "External mirror remotes must disable push and quarantine external PR branches"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-025"
+name = "REMOTES-AND-INBOX-QUARANTINE"
+scope = "git"
+script = """
+local branch = gost.git_branch()
+if branch:match("^inbox/") then
+    return true
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-025.messages]
+ERR_REMOTES_MISCONFIGURED = "External mirror remotes allow accidental direct pushes"
+
+[rules.GOST-026]
+description = "The project metadata manifest must adhere to strict schema limits and anti-jargon filters"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-026"
+name = "METADATA-MANIFEST-SSOT"
+scope = "root"
+script = """
+if gost.file_exists(".gost/metadata.json") then
+    local content = gost.read_file(".gost/metadata.json")
+    local meta = gost.parse_json(content)
+    if not (meta.slug and meta.title and meta.summary and meta.abstract) then
+        return false, "ERR_METADATA_INCOMPLETE", {}
+    end
+    if #meta.slug > 24 or #meta.title > 25 then
+        return false, "ERR_METADATA_LENGTH_EXCEEDED", {}
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-026.messages]
+ERR_METADATA_INCOMPLETE = "Manifest .gost/metadata.json lacks mandatory fields"
+ERR_METADATA_LENGTH_EXCEEDED = "Manifest .gost/metadata.json fields exceed length boundaries"
+
+[rules.GOST-027]
+description = "The business domain core must have zero I/O imports or framework dependencies"
+docs_url = "https://gost.2lp.in/3.0.0/rules/GOST-027"
+name = "DDD-HEXAGONAL-PURITY"
+scope = "src"
+script = """
+if gost.is_dir("src/domain") then
+    local files = gost.list_files("src/domain", true)
+    for _, f in ipairs(files) do
+        local content = gost.read_file(f)
+        if content and (content:match("std::fs") or content:match("std::net") or content:match("reqwest")) then
+            return false, "ERR_DOMAIN_IO_LEAK", { file = f }
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.GOST-027.messages]
+ERR_DOMAIN_IO_LEAK = "I/O or network dependency leak detected in pure domain file '{file}'"
+
+[rules.KOLLONTAI-001]
+description = "Every repository must have a .cccprc configuration file at the root"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-001"
+name = "CCCPRC-FILE-REQUIRED"
+scope = "project"
+script = """
+if not gost.file_exists(".cccprc") then
+    return false, "ERR_CCCPRC_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-001.messages]
+ERR_CCCPRC_MISSING = "Configuration file '.cccprc' is missing from repository root"
+
+[rules.KOLLONTAI-002]
+description = "The .cccprc configuration file must declare primary_forge_type"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-002"
+name = "PRIMARY-FORGE-TYPE-DECLARED"
+scope = "project"
+script = """
+if not gost.file_exists(".cccprc") then
+    return false, "ERR_CCCPRC_MISSING", {}
+end
+local content = gost.read_file(".cccprc") or ""
+if not content:match("primary_forge_type%s*=") then
+    return false, "ERR_PRIMARY_FORGE_TYPE_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-002.messages]
+ERR_CCCPRC_MISSING = "Configuration file '.cccprc' is missing"
+ERR_PRIMARY_FORGE_TYPE_MISSING = "Property 'primary_forge_type' is not declared in .cccprc"
+
+[rules.KOLLONTAI-003]
+description = "The .cccprc configuration file must declare agent_var_lang"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-003"
+name = "AGENT-VAR-LANG-DECLARED"
+scope = "project"
+script = """
+if not gost.file_exists(".cccprc") then
+    return false, "ERR_CCCPRC_MISSING", {}
+end
+local content = gost.read_file(".cccprc") or ""
+if not content:match("agent_var_lang%s*=") then
+    return false, "ERR_AGENT_VAR_LANG_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-003.messages]
+ERR_AGENT_VAR_LANG_MISSING = "Property 'agent_var_lang' is not declared in .cccprc"
+ERR_CCCPRC_MISSING = "Configuration file '.cccprc' is missing"
+
+[rules.KOLLONTAI-004]
+description = "Documentation files must not contain prohibited imperialist terms"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-004"
+name = "FORBIDDEN-TERMS-PROHIBITED"
+scope = "docs"
+script = """
+local files = gost.list_files("docs") or {}
+for _, file in ipairs(files) do
+    if file:match("%.md$") then
+        local content = gost.read_file(file) or ""
+        if content:lower():match("soberan") then
+            return false, "ERR_FORBIDDEN_TERM_FOUND", { file = file }
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-004.messages]
+ERR_FORBIDDEN_TERM_FOUND = "Forbidden imperialist term found in documentation file '{file}'"
+
+[rules.KOLLONTAI-005]
+description = "Repository root must contain a canonical VERSION file"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-005"
+name = "VERSION-FILE-REQUIRED"
+scope = "project"
+script = """
+if not gost.file_exists("VERSION") then
+    return false, "ERR_VERSION_FILE_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-005.messages]
+ERR_VERSION_FILE_MISSING = "Canonical 'VERSION' file is missing from repository root"
+
+[rules.KOLLONTAI-006]
+description = "Repository root must contain a CHANGELOG.md file"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-006"
+name = "CHANGELOG-FILE-REQUIRED"
+scope = "project"
+script = """
+if not gost.file_exists("CHANGELOG.md") then
+    return false, "ERR_CHANGELOG_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-006.messages]
+ERR_CHANGELOG_MISSING = "File 'CHANGELOG.md' is missing from repository root"
+
+[rules.KOLLONTAI-007]
+description = "Repository root must contain an .editorconfig file"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-007"
+name = "EDITORCONFIG-FILE-REQUIRED"
+scope = "project"
+script = """
+if not gost.file_exists(".editorconfig") then
+    return false, "ERR_EDITORCONFIG_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-007.messages]
+ERR_EDITORCONFIG_MISSING = "File '.editorconfig' is missing from repository root"
+
+[rules.KOLLONTAI-008]
+description = "If Dockerfile or compose.yaml exists, non-root user 1000:1000 and healthcheck must be configured"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-008"
+name = "CONTAINER-CONFORMANCE"
+scope = "project"
+script = '''
+if gost.file_exists("compose.yaml") or gost.file_exists("docker-compose.yml") then
+    local path = gost.file_exists("compose.yaml") and "compose.yaml" or "docker-compose.yml"
+    local content = gost.read_file(path) or ""
+    if not (content:match('user:%s*"1000:1000"') or content:match("user:%s*'1000:1000'") or content:match("user:%s*1000:1000")) then
+        return false, "ERR_CONTAINER_NON_ROOT_MISSING", { file = path }
+    end
+    if not content:match("healthcheck:") then
+        return false, "ERR_CONTAINER_HEALTHCHECK_MISSING", { file = path }
+    end
+end
+if gost.file_exists("Dockerfile") then
+    local content = gost.read_file("Dockerfile") or ""
+    if not (content:match("USER%s+1000:1000") or content:match("USER%s+1000") or content:match("user:%s*\"1000:1000\"")) then
+        return false, "ERR_DOCKERFILE_NON_ROOT_MISSING", { file = "Dockerfile" }
+    end
+end
+return true
+'''
+severity = "error"
+
+[rules.KOLLONTAI-008.messages]
+ERR_CONTAINER_HEALTHCHECK_MISSING = "Container specification in '{file}' must declare a healthcheck probe"
+ERR_CONTAINER_NON_ROOT_MISSING = "Container specification in '{file}' must declare non-root user '1000:1000'"
+ERR_DOCKERFILE_NON_ROOT_MISSING = "Dockerfile must declare non-root user 'USER 1000:1000'"
+
+[rules.KOLLONTAI-009]
+description = "API contract files (docs/openapi.yaml or docs/external/*.yaml) must be valid OpenAPI 3.x"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-009"
+name = "API-CONTRACT-CONFORMANCE"
+scope = "project"
+script = """
+if gost.file_exists("docs/openapi.yaml") then
+    local content = gost.read_file("docs/openapi.yaml") or ""
+    if not content:match("openapi:%s*3%.") then
+        return false, "ERR_OPENAPI_SPEC_INVALID", { file = "docs/openapi.yaml" }
+    end
+end
+if gost.is_dir("docs/external") then
+    local files = gost.list_files("docs/external") or {}
+    for _, file in ipairs(files) do
+        if file:match("%.ya?ml$") then
+            local content = gost.read_file(file) or ""
+            if not content:match("openapi:%s*3%.") then
+                return false, "ERR_OPENAPI_SPEC_INVALID", { file = file }
+            end
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-009.messages]
+ERR_OPENAPI_SPEC_INVALID = "API contract schema in '{file}' must declare OpenAPI 3.x ('openapi: 3.x.x')"
+
+[rules.KOLLONTAI-010]
+description = "Compiled binary artifacts must pass a basic smoke test without SIGSEGV or panic"
+docs_url = "https://kollontai.2lp.in/2.1.0/rules/KOLLONTAI-010"
+name = "SMOKE-TEST-SANITY-POST-BUILD"
+scope = "post-build"
+script = """
+local bin = gost.target_binary()
+if not bin or bin == "" then
+    return true
+end
+
+local res = gost.exec_artifact(bin, { "--help" }, 3000)
+if not res.ok then
+    if res.signal == 11 or res.exit_code == 139 then
+        return false, "ERR_SMOKE_SEGFAULT", { binary = bin }
+    elseif res.stderr and res.stderr:match("panicked at") then
+        return false, "ERR_SMOKE_PANIC", { binary = bin, error = res.stderr }
+    else
+        return false, "ERR_SMOKE_EXEC_FAILED", { binary = bin, exit_code = res.exit_code or -1 }
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.KOLLONTAI-010.messages]
+ERR_SMOKE_EXEC_FAILED = "Post-build smoke test failed: binary '{binary}' exited with non-zero status ({exit_code})"
+ERR_SMOKE_PANIC = "Post-build smoke test failed: binary '{binary}' panicked on startup: {error}"
+ERR_SMOKE_SEGFAULT = "Post-build smoke test failed: binary '{binary}' terminated with Segmentation Fault (SIGSEGV)"
+
+[rules.LILYA-001]
+description = "Static catalog.json and kombinat.toml files are strictly prohibited in repositories"
+docs_url = "https://lilya.2lp.in/2.1.0/rules/LILYA-001"
+name = "STATIC-MANIFESTS-PROHIBITED"
+scope = "project"
+script = """
+if gost.file_exists("catalog.json") then
+    return false, "ERR_STATIC_CATALOG_PROHIBITED", { file = "catalog.json" }
+end
+if gost.file_exists("kombinat.toml") then
+    return false, "ERR_STATIC_KOMBINAT_PROHIBITED", { file = "kombinat.toml" }
+end
+return true
+"""
+severity = "error"
+
+[rules.LILYA-001.messages]
+ERR_STATIC_CATALOG_PROHIBITED = "Static catalog.json is strictly prohibited; inventory is managed via Gossnab API"
+ERR_STATIC_KOMBINAT_PROHIBITED = "Static kombinat.toml is strictly prohibited; dependency state is managed via Gossnab API"
+
+[rules.LILYA-002]
+description = "The .cccprc file must declare primary_forge_domain as gambi.2lp.in"
+docs_url = "https://lilya.2lp.in/2.1.0/rules/LILYA-002"
+name = "PRIMARY-FORGE-GAMBI-CANONICAL"
+scope = "project"
+script = """
+if not gost.file_exists(".cccprc") then
+    return false, "ERR_CCCPRC_MISSING", {}
+end
+local content = gost.read_file(".cccprc") or ""
+if not content:match("primary_forge_domain%s*=%s*gambi%.2lp%.in") and not content:match("gambi%.2lp%.in") then
+    return false, "ERR_GAMBI_DOMAIN_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.LILYA-002.messages]
+ERR_CCCPRC_MISSING = "Configuration file .cccprc is missing"
+ERR_GAMBI_DOMAIN_MISSING = "Canonical primary forge domain gambi.2lp.in is not declared in .cccprc"
+
+[rules.LILYA-003]
+description = "Repository documentation or site must include transfeminist identity assertion"
+docs_url = "https://lilya.2lp.in/2.1.0/rules/LILYA-003"
+name = "TRANSFEMINIST-IDENTITY-REQUIRED"
+scope = "project"
+script = """
+local has_identity = false
+if gost.file_exists("profile.md") then
+    local content = gost.read_file("profile.md") or ""
+    if content:match("travesti") and content:match("lumen%.pink") then
+        has_identity = true
+    end
+end
+if not has_identity and gost.file_exists("README.md") then
+    local content = gost.read_file("README.md") or ""
+    if content:match("travesti") or content:match("lumen%.pink") then
+        has_identity = true
+    end
+end
+if not has_identity then
+    return false, "ERR_TRANSFEMINIST_IDENTITY_MISSING", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.LILYA-003.messages]
+ERR_TRANSFEMINIST_IDENTITY_MISSING = "Transfeminist identity assertion is missing from documentation"
+
+[rules.LILYA-004]
+description = "Docker compose files must strictly use .yaml extension, never .yml"
+docs_url = "https://lilya.2lp.in/2.1.0/rules/LILYA-004"
+name = "STRICT-COMPOSE-YAML-EXTENSION"
+scope = "project"
+script = """
+if gost.file_exists("compose.yml") or gost.file_exists("docker-compose.yml") then
+    return false, "ERR_YML_EXTENSION_BANNED", {}
+end
+return true
+"""
+severity = "error"
+
+[rules.LILYA-004.messages]
+ERR_YML_EXTENSION_BANNED = "Extension .yml is strictly banned for docker compose; use .yaml"
+
+[rules.LILYA-005]
+description = "Documentation must not contain prohibited imperialist terms"
+docs_url = "https://lilya.2lp.in/2.1.0/rules/LILYA-005"
+name = "FORBIDDEN-IMPERIALIST-TERMS"
+scope = "project"
+script = """
+local files = gost.list_files("docs") or {}
+for _, file in ipairs(files) do
+    if file:match("%.md$") then
+        local content = gost.read_file(file) or ""
+        if content:lower():match("soberan") then
+            return false, "ERR_FORBIDDEN_IMPERIALIST_TERM", { file = file }
+        end
+    end
+end
+return true
+"""
+severity = "error"
+
+[rules.LILYA-005.messages]
+ERR_FORBIDDEN_IMPERIALIST_TERM = "Forbidden imperialist term found in documentation file '{file}'"
+
+[rules.LILYA-006]
+description = "CLI utilities in post-build must output informative --help and canonical --version matching repository metadata"
+docs_url = "https://lilya.2lp.in/2.1.0/rules/LILYA-006"
+name = "CLI-INTERFACE-CONFORMANCE-POST-BUILD"
+scope = "post-build"
+script = """
+local bin = gost.target_binary()
+if not bin or bin == "" then
+    return true
+end
+
+local res_help = gost.exec_artifact(bin, { "--help" }, 3000)
+if not res_help.ok or not res_help.stdout or #res_help.stdout < 10 then
+    return false, "ERR_CLI_HELP_FAILED", { binary = bin }
+end
+
+local res_ver = gost.exec_artifact(bin, { "--version" }, 3000)
+if not res_ver.ok or not res_ver.stdout then
+    return false, "ERR_CLI_VERSION_FAILED", { binary = bin }
+end
+
+local expected_ver = gost.read_file("VERSION")
+if expected_ver then
+    expected_ver = expected_ver:gsub("%s+", "")
+    if expected_ver ~= "" and not res_ver.stdout:match(expected_ver) then
+        return false, "ERR_CLI_VERSION_MISMATCH", { binary = bin, expected = expected_ver, got = res_ver.stdout:gsub("%s+$", "") }
+    end
+end
+
+return true
+"""
+severity = "error"
+
+[rules.LILYA-006.messages]
+ERR_CLI_HELP_FAILED = "CLI conformance failed: binary '{binary} --help' failed or returned insufficient help text"
+ERR_CLI_VERSION_FAILED = "CLI conformance failed: binary '{binary} --version' execution failed"
+ERR_CLI_VERSION_MISMATCH = "CLI conformance failed: binary '{binary} --version' output '{got}' does not contain expected version '{expected}'"
