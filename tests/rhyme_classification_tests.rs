@@ -172,7 +172,10 @@ Amor é fogo que arde sem se ver,
 
     let par2 = &e0.pares_avaliados[1];
     assert_eq!(par2.versos, (2, 3));
-    assert_eq!(par2.tokens, ("sente".to_string(), "descontente".to_string()));
+    assert_eq!(
+        par2.tokens,
+        ("sente".to_string(), "descontente".to_string())
+    );
     assert_eq!(par2.classificacao, QualidadeRima::Rica);
 }
 

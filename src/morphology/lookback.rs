@@ -38,10 +38,11 @@ pub fn desambiguar_por_contexto(
     }
     // Suporte a clítico ou advérbio intercalado: "eu já não canto" ou "ele me ama"
     if let Some(ref t2) = t_minus_2 {
-        if is_pronome_reto(t2) && (is_negacao(&t_minus_1) || is_clitico_intercalado(&t_minus_1)) {
-            if mascara_t0.contains(PosMask::VERBO) {
-                return (PosMask::VERBO, Some("R-PRON"));
-            }
+        if is_pronome_reto(t2)
+            && (is_negacao(&t_minus_1) || is_clitico_intercalado(&t_minus_1))
+            && mascara_t0.contains(PosMask::VERBO)
+        {
+            return (PosMask::VERBO, Some("R-PRON"));
         }
     }
 
@@ -51,10 +52,11 @@ pub fn desambiguar_por_contexto(
     }
 
     // R-PREP: Conexão Preposicional Infinitiva
-    if is_preposicao_infinitiva(&t_minus_1) && is_infinitivo(palavra_t0) {
-        if mascara_t0.contains(PosMask::VERBO) {
-            return (PosMask::VERBO, Some("R-PREP"));
-        }
+    if is_preposicao_infinitiva(&t_minus_1)
+        && is_infinitivo(palavra_t0)
+        && mascara_t0.contains(PosMask::VERBO)
+    {
+        return (PosMask::VERBO, Some("R-PREP"));
     }
 
     // R-MOD: Modificação Nominal Pós-Substantivo Inequívoco

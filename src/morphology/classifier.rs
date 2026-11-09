@@ -332,12 +332,20 @@ pub fn classificar_rimas_poema(texto: &str) -> RelatorioRimasPoema {
                 }
                 _ => {
                     // Agrupamento genérico por feixe de caracteres
-                    pares_avaliados.extend(avaliar_grupos_genericos(&tokens, &chars_esquema, offset_verso));
+                    pares_avaliados.extend(avaliar_grupos_genericos(
+                        &tokens,
+                        &chars_esquema,
+                        offset_verso,
+                    ));
                 }
             }
         } else {
             // Grupos e estrofes genéricas (tercetos, sextilhas, oitavas, etc.)
-            pares_avaliados.extend(avaliar_grupos_genericos(&tokens, &chars_esquema, offset_verso));
+            pares_avaliados.extend(avaliar_grupos_genericos(
+                &tokens,
+                &chars_esquema,
+                offset_verso,
+            ));
         }
 
         estrofes_relatorio.push(EstrofeRimas {
@@ -359,7 +367,8 @@ fn avaliar_grupos_genericos(
     chars_esquema: &[char],
     offset_verso: usize,
 ) -> Vec<ParRimaAvaliado> {
-    let mut map_grupos: std::collections::BTreeMap<char, Vec<usize>> = std::collections::BTreeMap::new();
+    let mut map_grupos: std::collections::BTreeMap<char, Vec<usize>> =
+        std::collections::BTreeMap::new();
     for (i, &ch) in chars_esquema.iter().enumerate() {
         if i < tokens.len() {
             map_grupos.entry(ch).or_default().push(i);
