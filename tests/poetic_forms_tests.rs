@@ -96,7 +96,166 @@ Fechando a peça com nobre canção.";
 
     let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Soneto Inglês/Shakespeariano");
     assert_eq!(diag.nome, "Soneto Inglês (Shakespeariano)");
-    assert!(diag.confianca_percentual >= 85);
+    assert_eq!(
+        diag.confianca_percentual, 100,
+        "Soneto Shakespeariano canônico deve atingir 100%, obteve {}",
+        diag.confianca_percentual
+    );
+}
+
+#[test]
+fn test_soneto_shakespeariano_profana_100_por_cento() {
+    let texto = "\
+Cobiça a carne, que depois recusa,
+Exige o molde, pronta a condenar;
+Disfarça a culpa no pudor da musa
+Enquanto o vício prende o seu olhar.
+
+Despreza a mão que levantou seu muro,
+No lindo linho limpa o nojo e ri;
+Consome o braço no trabalho duro,
+Negando a quem mantém seu trono ali.
+
+Condena o gozo na oração que tece,
+Reduz a vida a tráfico venal;
+Compra o silêncio na vendida prece,
+E julga o mundo em cego tribunal.
+
+Se o teu altar é palco de pecado,
+Sangue, suor ou sêmen é sagrado?";
+
+    let poema = escandir_poema(texto, false, false, true, true);
+    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Soneto Inglês (Shakespeariano)");
+    assert_eq!(diag.nome, "Soneto Inglês (Shakespeariano)");
+    assert_eq!(
+        diag.confianca_percentual, 100,
+        "Profana deve atingir 100% de conformidade, obteve {}%",
+        diag.confianca_percentual
+    );
+    assert!(
+        diag.observacoes.is_empty(),
+        "Profana não deve ter observações de desvio, obteve: {:?}",
+        diag.observacoes
+    );
+}
+
+#[test]
+fn test_soneto_spenseriano_100_por_cento() {
+    // Soneto Spenseriano: 14 versos decassílabos em 4+4+4+2 com rimas entrelaçadas ABAB BCBC CDCD EE
+    let texto = "\
+Verso primeiro para começar,
+Outro segundo segue com rigor,
+Terceiro verso vem para rimar,
+Quarto termina a quadra com valor.
+
+Quinto retoma o verso do valor,
+Sexto introduz um clima de cantar,
+Sétimo busca o ritmo de amor,
+Oitavo fecha a quadra a ressoar.
+
+Nono prossegue o verso a ressoar,
+Décimo traz a chama do saber,
+O verso onze brilha sem cessar,
+Doze completa o quadro a resplender.
+
+Por fim o par resume a perfeição,
+Fechando a peça com nobre canção.";
+
+    let poema = escandir_poema(texto, false, false, true, true);
+    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Soneto Inglês (Shakespeariano / Spenseriano)");
+    assert!(diag.nome.contains("Soneto Inglês"));
+    assert_eq!(
+        diag.confianca_percentual, 100,
+        "Spenseriano deve atingir 100% de conformidade, obteve {}%",
+        diag.confianca_percentual
+    );
+}
+
+#[test]
+fn test_soneto_shakespeariano_com_desvio_de_rima_e_observacoes() {
+    // Soneto Shakespeariano cujo dístico final quebra a rima (versos 13 e 14 não rimam entre si)
+    let texto = "\
+Cobiça a carne, que depois recusa,
+Exige o molde, pronta a condenar;
+Disfarça a culpa no pudor da musa
+Enquanto o vício prende o seu olhar.
+
+Despreza a mão que levantou seu muro,
+No lindo linho limpa o nojo e ri;
+Consome o braço no trabalho duro,
+Negando a quem mantém seu trono ali.
+
+Condena o gozo na oração que tece,
+Reduz a vida a tráfico venal;
+Compra o silêncio na vendida prece,
+E julga o mundo em cego tribunal.
+
+Se o teu altar é palco de pecado,
+Todo este pranto agora é vão lamento.";
+
+    let poema = escandir_poema(texto, false, false, true, true);
+    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar aproximação de Soneto Inglês");
+    assert!(diag.nome.contains("Soneto Inglês"));
+    assert!(
+        diag.confianca_percentual < 100,
+        "Dístico com rima quebrada não pode pontuar 100%"
+    );
+    assert!(
+        !diag.observacoes.is_empty(),
+        "Deve conter observações apontando desvio nas rimas"
+    );
+}
+
+#[test]
+fn test_sonetilha_100_por_cento() {
+    // 14 versos em Redondilha Maior (7 sílabas métricas) em 4+4+3+3
+    let texto = "\
+Na margem do rio manso,
+Vejo a tarde desmaiar;
+Em vão busco o meu descanso,
+Cansado de navegar.
+
+O vento frio me avisa
+Que a noite vem ao redor;
+Num leve sopro de brisa,
+Cresce no peito a dor.
+
+As sombras cobrem a terra,
+O céu perde a claridade;
+A escuridão tudo encerra.
+
+Fica no peito a saudade,
+E a dor que a alma aferra,
+Chora na calma cidade.";
+
+    let poema = escandir_poema(texto, false, false, true, true);
+    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Sonetilha");
+    assert_eq!(diag.nome, "Sonetilha (Sonetino)");
+    assert_eq!(
+        diag.confianca_percentual, 100,
+        "Sonetilha canônica deve atingir 100%"
+    );
+}
+
+#[test]
+fn test_septilha_cordel_100_por_cento() {
+    // 7 versos em Redondilha Maior (7 sílabas métricas), rimas nos versos pares e fecho emparelhado (XAXABBX ou ABABCCA)
+    let texto = "\
+Na feira de Caruaru,
+Tem arte de toda gente;
+Do boneco de barro cru,
+Ao verso mais eloquente;
+O poeta canta em frente,
+Com sua viola afamada,
+Para o povo do sertão.";
+
+    let poema = escandir_poema(texto, false, false, true, true);
+    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Septilha de Cordel");
+    assert_eq!(diag.nome, "Septilha de Cordel");
+    assert_eq!(
+        diag.confianca_percentual, 100,
+        "Septilha canônica deve atingir 100%"
+    );
 }
 
 #[test]
