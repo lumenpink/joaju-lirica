@@ -1,6 +1,7 @@
 //! Módulo determinístico de morfologia, consulta léxica e classificação de rimas.
 
 pub mod classifier;
+pub mod cliches;
 pub mod clitics;
 pub mod dafsa;
 pub mod lookback;
@@ -12,6 +13,7 @@ pub use classifier::{
     IndeterminadoMotivo, JustificativaAuditoria, ParRimaAvaliado, QualidadeRima,
     RelatorioRimasPoema, TokenRimante,
 };
+pub use cliches::verificar_cliche;
 pub use clitics::descolar_enclise;
 pub use dafsa::consultar_lexico;
 pub use lookback::desambiguar_por_contexto;

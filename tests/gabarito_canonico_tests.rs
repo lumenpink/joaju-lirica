@@ -310,18 +310,31 @@ fn test_classificacao_rimas_gabarito_canonico() {
     let mut total_pobres = 0;
     let mut total_ricas = 0;
     let mut total_preciosas = 0;
+    let mut total_raras = 0;
+    let mut total_provaveis_pobres = 0;
+    let mut total_provaveis_ricas = 0;
     let mut total_indeterminadas = 0;
+    let mut total_cliches = 0;
 
     for poema in &gabarito {
         let relatorio = joaju_lirica::morphology::classificar_rimas_poema(&poema.texto);
         for estrofe in &relatorio.estrofes {
             for par in &estrofe.pares_avaliados {
                 total_pares += 1;
+                if par.eh_cliche {
+                    total_cliches += 1;
+                }
                 match par.classificacao {
                     joaju_lirica::morphology::QualidadeRima::Pobre => total_pobres += 1,
                     joaju_lirica::morphology::QualidadeRima::Rica => total_ricas += 1,
                     joaju_lirica::morphology::QualidadeRima::Preciosa => total_preciosas += 1,
-                    joaju_lirica::morphology::QualidadeRima::Rara => total_pobres += 1,
+                    joaju_lirica::morphology::QualidadeRima::Rara => total_raras += 1,
+                    joaju_lirica::morphology::QualidadeRima::ProvavelPobre { .. } => {
+                        total_provaveis_pobres += 1
+                    }
+                    joaju_lirica::morphology::QualidadeRima::ProvavelRica { .. } => {
+                        total_provaveis_ricas += 1
+                    }
                     joaju_lirica::morphology::QualidadeRima::Indeterminada { .. } => {
                         total_indeterminadas += 1;
                     }
@@ -331,15 +344,22 @@ fn test_classificacao_rimas_gabarito_canonico() {
     }
 
     println!(
-        "\n★ ESTATÍSTICA DE RIMAS NO GABARITO CANÔNICO (55 POEMAS):\n  • Total de Pares: {}\n  • Rimas Pobres: {} ({:.1}%)\n  • Rimas Ricas: {} ({:.1}%)\n  • Rimas Preciosas: {}\n  • Indeterminadas: {} ({:.1}%)\n",
+        "\n★ ESTATÍSTICA DE RIMAS NO GABARITO CANÔNICO (55 POEMAS):\n  • Total de Pares: {}\n  • Rimas Pobres (Certeza 100%): {} ({:.1}%)\n  • Rimas Ricas (Certeza 100%): {} ({:.1}%)\n  • Rimas Preciosas: {}\n  • Rimas Raras: {}\n  • Prováveis Pobres: {} ({:.1}%)\n  • Prováveis Ricas: {} ({:.1}%)\n  • Indeterminadas: {} ({:.1}%)\n  • Rimas Clichê Detectadas: {} ({:.1}%)\n",
         total_pares,
         total_pobres,
         (total_pobres as f64 / total_pares as f64) * 100.0,
         total_ricas,
         (total_ricas as f64 / total_pares as f64) * 100.0,
         total_preciosas,
+        total_raras,
+        total_provaveis_pobres,
+        (total_provaveis_pobres as f64 / total_pares as f64) * 100.0,
+        total_provaveis_ricas,
+        (total_provaveis_ricas as f64 / total_pares as f64) * 100.0,
         total_indeterminadas,
-        (total_indeterminadas as f64 / total_pares as f64) * 100.0
+        (total_indeterminadas as f64 / total_pares as f64) * 100.0,
+        total_cliches,
+        (total_cliches as f64 / total_pares as f64) * 100.0,
     );
 
     assert!(

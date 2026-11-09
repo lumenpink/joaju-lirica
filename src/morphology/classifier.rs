@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::cliches::verificar_cliche;
 use super::clitics::descolar_enclise;
 use super::dafsa::consultar_lexico;
 use super::lookback::desambiguar_por_contexto;
@@ -27,14 +28,26 @@ pub struct TokenRimante {
 /// Classificação qualitativa determinística da rima.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QualidadeRima {
-    /// Rima entre vocábulos da mesma classe gramatical (ex.: Substantivo x Substantivo).
+    /// Rima entre vocábulos comprovadamente da mesma classe gramatical (100% certeza).
     Pobre,
-    /// Rima entre vocábulos de classes gramaticais disjuntas (ex.: Substantivo x Adjetivo).
+    /// Rima entre vocábulos comprovadamente de classes gramaticais disjuntas (100% certeza).
     Rica,
-    /// Rima com assimetria de ênclise/mesóclise (ex.: "vê-la" x "estrela").
+    /// Rima com assimetria comprovada de ênclise/mesóclise (ex.: "vê-la" x "estrela").
     Preciosa,
-    /// Vocábulos homógrafos idênticos rimando entre si no mesmo sentido ou grafia rara.
+    /// Rima com escassez fonológica atestada no idioma ou vocábulos esdrúxulos raros.
     Rara,
+    /// Rima entre vocábulos que convergem para a mesma esfera categórica
+    /// (ex.: particípios equivalentes ou substantivos poéticos com homógrafo verbal raro).
+    ProvavelPobre {
+        /// Justificativa detalhada do alinhamento provável.
+        justificativa: String,
+    },
+    /// Rima entre vocábulos com forte evidência de classes distintas na hipótese literária primária
+    /// (ex.: um termo é Verbo garantido e o outro é Substantivo de uso comum frente a homógrafo raro).
+    ProvavelRica {
+        /// Justificativa detalhada da distinção provável.
+        justificativa: String,
+    },
     /// Impossibilidade determinística de resolução da classe ou vocábulo desconhecido.
     Indeterminada {
         /// Razão objetiva da indeterminação.
@@ -72,6 +85,8 @@ pub enum JustificativaAuditoria {
     AmbiguidadeSintatica(String),
     /// Vocábulo ausente na base léxica e nos autômatos de derivação.
     FalhaLexical(String),
+    /// Hipótese provável fundamentada em evidência lexical, sufixal ou participial.
+    HipoteseProvavel(String),
 }
 
 /// Avaliação completa de um par rimante.
@@ -85,6 +100,10 @@ pub struct ParRimaAvaliado {
     pub classificacao: QualidadeRima,
     /// Justificativa analítica para auditoria.
     pub auditoria: JustificativaAuditoria,
+    /// Indica se o par forma uma rima clichê / hiper-saturada na lírica.
+    pub eh_cliche: bool,
+    /// Motivo estilístico detalhado da rima clichê, se aplicável.
+    pub motivo_cliche: Option<String>,
 }
 
 /// Diagnóstico estruturado por estrofe.
@@ -173,6 +192,96 @@ pub fn extrair_token_rimante(linha: &str, _num_linha: usize) -> TokenRimante {
     }
 }
 
+fn is_terminacao_rara(p1: &str, p2: &str) -> bool {
+    const SUFIXOS_RAROS: &[&str] = &[
+        "austro", "austros", "austra", "austras", "urbe", "urbes", "esbio", "ésbio", "esbios",
+        "ésbios", "esbia", "ésbia", "efiro", "éfiro", "efiros", "éfiros", "pelago", "pélago",
+        "pelagos", "pélagos", "cubico", "cúbico", "cubicos", "cúbicos", "fago", "fagos",
+        "fenix", "fênix", "helix", "hélix", "calix", "cálix",
+    ];
+    let l1 = p1.to_lowercase();
+    let l2 = p2.to_lowercase();
+    for suf in SUFIXOS_RAROS {
+        if l1.ends_with(suf) && l2.ends_with(suf) {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_participio(w: &str) -> bool {
+    let lower = w.to_lowercase();
+    lower.ends_with("ado")
+        || lower.ends_with("ada")
+        || lower.ends_with("ados")
+        || lower.ends_with("adas")
+        || lower.ends_with("ido")
+        || lower.ends_with("ida")
+        || lower.ends_with("idos")
+        || lower.ends_with("idas")
+        || lower.ends_with("erto")
+        || lower.ends_with("ertos")
+        || lower.ends_with("erta")
+        || lower.ends_with("ertas")
+}
+
+fn is_sufixo_adjetival(w: &str) -> bool {
+    let lower = w.to_lowercase();
+    lower.ends_with("oso")
+        || lower.ends_with("osa")
+        || lower.ends_with("osos")
+        || lower.ends_with("osas")
+        || lower.ends_with("ente")
+        || lower.ends_with("entes")
+        || lower.ends_with("ante")
+        || lower.ends_with("antes")
+        || lower.ends_with("vel")
+        || lower.ends_with("veis")
+        || lower.ends_with("vél")
+}
+
+fn is_sufixo_nominal(w: &str) -> bool {
+    let lower = w.to_lowercase();
+    lower.ends_with("ção")
+        || lower.ends_with("ções")
+        || lower.ends_with("dade")
+        || lower.ends_with("dades")
+        || lower.ends_with("mento")
+        || lower.ends_with("mentos")
+        || lower.ends_with("ura")
+        || lower.ends_with("uras")
+        || lower.ends_with("eza")
+        || lower.ends_with("ezas")
+}
+
+fn is_termo_predominantemente_nominal(w: &str) -> bool {
+    matches!(
+        w.to_lowercase().as_str(),
+        "tarde"
+            | "noite"
+            | "dia"
+            | "vida"
+            | "ouro"
+            | "hora"
+            | "palma"
+            | "violas"
+            | "açoite"
+            | "recusa"
+            | "chama"
+            | "pecado"
+            | "abrigo"
+            | "trigo"
+            | "mora"
+            | "laço"
+            | "espanto"
+            | "pranto"
+            | "caminho"
+            | "atenção"
+            | "perfeição"
+            | "corolas"
+    )
+}
+
 /// Avalia deterministricamente a qualidade de um par de rima entre dois tokens.
 pub fn avaliar_par_rima(
     t1: &TokenRimante,
@@ -208,7 +317,158 @@ pub fn avaliar_par_rima(
         );
     }
 
-    // 3. Checagem de Ambiguidade Irresolvida
+    // 3. Rimas Raras por escassez fonológica de terminação
+    if is_terminacao_rara(&t1.base, &t2.base) {
+        return (
+            QualidadeRima::Rara,
+            JustificativaAuditoria::HipoteseProvavel(
+                "Rima rara por escassez fonológica da terminação no idioma".to_string(),
+            ),
+        );
+    }
+
+    // 4. Comparação de Máscaras Disjuntas (100% de Certeza de Rima Rica)
+    // Se a interseção de classes possíveis for vazia, é matematicamente impossível que pertençam à mesma classe.
+    if (t1.pos & t2.pos).is_empty() {
+        return (
+            QualidadeRima::Rica,
+            JustificativaAuditoria::ClassesDistintas(t1.pos, t2.pos),
+        );
+    }
+
+    // 5. Se ambos os termos estiverem 100% resolvidos (100% de Certeza de Rima Pobre)
+    if t1.pos.is_resolved() && t2.pos.is_resolved() {
+        return (
+            QualidadeRima::Pobre,
+            JustificativaAuditoria::MesmaClasse(t1.pos),
+        );
+    }
+
+    // 6. Graus Epistêmicos de Certeza Morfológica (Hipóteses Prevalentes)
+
+    // 5a. Particípios Passados / Adjetivos Verbais Equivalentes
+    if is_participio(&t1.base)
+        && is_participio(&t2.base)
+        && (t1.pos.contains(PosMask::VERBO) || t1.pos.contains(PosMask::ADJETIVO))
+        && (t2.pos.contains(PosMask::VERBO) || t2.pos.contains(PosMask::ADJETIVO))
+    {
+        return (
+            QualidadeRima::ProvavelPobre {
+                justificativa: "Par formado por particípios ou adjetivos verbais equivalentes"
+                    .to_string(),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Convergência participial / adjetivo verbal".to_string(),
+            ),
+        );
+    }
+
+    // 5b. Sufixos Adjetivais Coincidentes (-oso, -ente, -ante, -vel)
+    if is_sufixo_adjetival(&t1.base)
+        && is_sufixo_adjetival(&t2.base)
+        && t1.pos.contains(PosMask::ADJETIVO)
+        && t2.pos.contains(PosMask::ADJETIVO)
+    {
+        return (
+            QualidadeRima::ProvavelPobre {
+                justificativa: "Par formado por adjetivos de mesma derivação sufixal".to_string(),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Convergência morfológica por sufixo adjetival".to_string(),
+            ),
+        );
+    }
+
+    // 5c. Sufixos Substantivais Coincidentes (-ção, -dade, -mento, -ura, -eza)
+    if is_sufixo_nominal(&t1.base)
+        && is_sufixo_nominal(&t2.base)
+        && t1.pos.contains(PosMask::SUBSTANTIVO)
+        && t2.pos.contains(PosMask::SUBSTANTIVO)
+    {
+        return (
+            QualidadeRima::ProvavelPobre {
+                justificativa: "Par formado por substantivos de mesma derivação sufixal".to_string(),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Convergência morfológica por sufixo nominal".to_string(),
+            ),
+        );
+    }
+
+    // 5d. Verbo categórico (100% certo) x Substantivo literário preponderante
+    if t1.pos == PosMask::VERBO && is_termo_predominantemente_nominal(&t2.base) {
+        return (
+            QualidadeRima::ProvavelRica {
+                justificativa: format!(
+                    "'{}' é Verbo garantido; '{}' é predominantemente nominal na literatura",
+                    t1.texto, t2.texto
+                ),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Verbo categórico x Provável Substantivo".to_string(),
+            ),
+        );
+    }
+    if t2.pos == PosMask::VERBO && is_termo_predominantemente_nominal(&t1.base) {
+        return (
+            QualidadeRima::ProvavelRica {
+                justificativa: format!(
+                    "'{}' é Verbo garantido; '{}' é predominantemente nominal na literatura",
+                    t2.texto, t1.texto
+                ),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Verbo categórico x Provável Substantivo".to_string(),
+            ),
+        );
+    }
+
+    // 5e. Substantivo categórico x Termo predominantemente nominal
+    if t1.pos == PosMask::SUBSTANTIVO && is_termo_predominantemente_nominal(&t2.base) {
+        return (
+            QualidadeRima::ProvavelPobre {
+                justificativa: format!(
+                    "'{}' e '{}' convergem para a esfera substantiva",
+                    t1.texto, t2.texto
+                ),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Substantivo categórico x Substantivo literário".to_string(),
+            ),
+        );
+    }
+    if t2.pos == PosMask::SUBSTANTIVO && is_termo_predominantemente_nominal(&t1.base) {
+        return (
+            QualidadeRima::ProvavelPobre {
+                justificativa: format!(
+                    "'{}' e '{}' convergem para a esfera substantiva",
+                    t1.texto, t2.texto
+                ),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Substantivo categórico x Substantivo literário".to_string(),
+            ),
+        );
+    }
+
+    // 5f. Ambos os termos são predominantemente nominais
+    if is_termo_predominantemente_nominal(&t1.base)
+        && is_termo_predominantemente_nominal(&t2.base)
+    {
+        return (
+            QualidadeRima::ProvavelPobre {
+                justificativa: format!(
+                    "'{}' e '{}' convergem para a esfera substantiva",
+                    t1.texto, t2.texto
+                ),
+            },
+            JustificativaAuditoria::HipoteseProvavel(
+                "Convergência nominal mútua".to_string(),
+            ),
+        );
+    }
+
+    // 6. Indeterminação Estrita
     if t1.pos.is_ambiguous() {
         return (
             QualidadeRima::Indeterminada {
@@ -220,29 +480,31 @@ pub fn avaliar_par_rima(
             JustificativaAuditoria::AmbiguidadeSintatica(t1.texto.clone()),
         );
     }
-    if t2.pos.is_ambiguous() {
-        return (
-            QualidadeRima::Indeterminada {
-                motivo: IndeterminadoMotivo::AmbiguidadeIrresoluvel {
-                    palavra: t2.texto.clone(),
-                    mascara: t2.pos,
-                },
+    (
+        QualidadeRima::Indeterminada {
+            motivo: IndeterminadoMotivo::AmbiguidadeIrresoluvel {
+                palavra: t2.texto.clone(),
+                mascara: t2.pos,
             },
-            JustificativaAuditoria::AmbiguidadeSintatica(t2.texto.clone()),
-        );
-    }
+        },
+        JustificativaAuditoria::AmbiguidadeSintatica(t2.texto.clone()),
+    )
+}
 
-    // 4. Comparação de Máscaras Resolvidas
-    if (t1.pos & t2.pos).is_empty() {
-        (
-            QualidadeRima::Rica,
-            JustificativaAuditoria::ClassesDistintas(t1.pos, t2.pos),
-        )
-    } else {
-        (
-            QualidadeRima::Pobre,
-            JustificativaAuditoria::MesmaClasse(t1.pos),
-        )
+fn criar_par_avaliado(
+    versos: (usize, usize),
+    t1: &TokenRimante,
+    t2: &TokenRimante,
+) -> ParRimaAvaliado {
+    let (classificacao, auditoria) = avaliar_par_rima(t1, t2);
+    let opt_cliche = verificar_cliche(&t1.texto, &t2.texto);
+    ParRimaAvaliado {
+        versos,
+        tokens: (t1.texto.clone(), t2.texto.clone()),
+        classificacao,
+        auditoria,
+        eh_cliche: opt_cliche.is_some(),
+        motivo_cliche: opt_cliche.map(|s| s.to_string()),
     }
 }
 
@@ -278,57 +540,42 @@ pub fn classificar_rimas_poema(texto: &str) -> RelatorioRimasPoema {
             match s.as_str() {
                 "ABBA" => {
                     // Interpolada: (1, 4) e (2, 3)
-                    let (q1, j1) = avaliar_par_rima(&tokens[0], &tokens[3]);
-                    pares_avaliados.push(ParRimaAvaliado {
-                        versos: (offset_verso, offset_verso + 3),
-                        tokens: (tokens[0].texto.clone(), tokens[3].texto.clone()),
-                        classificacao: q1,
-                        auditoria: j1,
-                    });
-
-                    let (q2, j2) = avaliar_par_rima(&tokens[1], &tokens[2]);
-                    pares_avaliados.push(ParRimaAvaliado {
-                        versos: (offset_verso + 1, offset_verso + 2),
-                        tokens: (tokens[1].texto.clone(), tokens[2].texto.clone()),
-                        classificacao: q2,
-                        auditoria: j2,
-                    });
+                    pares_avaliados.push(criar_par_avaliado(
+                        (offset_verso, offset_verso + 3),
+                        &tokens[0],
+                        &tokens[3],
+                    ));
+                    pares_avaliados.push(criar_par_avaliado(
+                        (offset_verso + 1, offset_verso + 2),
+                        &tokens[1],
+                        &tokens[2],
+                    ));
                 }
                 "ABAB" => {
                     // Cruzada: (1, 3) e (2, 4)
-                    let (q1, j1) = avaliar_par_rima(&tokens[0], &tokens[2]);
-                    pares_avaliados.push(ParRimaAvaliado {
-                        versos: (offset_verso, offset_verso + 2),
-                        tokens: (tokens[0].texto.clone(), tokens[2].texto.clone()),
-                        classificacao: q1,
-                        auditoria: j1,
-                    });
-
-                    let (q2, j2) = avaliar_par_rima(&tokens[1], &tokens[3]);
-                    pares_avaliados.push(ParRimaAvaliado {
-                        versos: (offset_verso + 1, offset_verso + 3),
-                        tokens: (tokens[1].texto.clone(), tokens[3].texto.clone()),
-                        classificacao: q2,
-                        auditoria: j2,
-                    });
+                    pares_avaliados.push(criar_par_avaliado(
+                        (offset_verso, offset_verso + 2),
+                        &tokens[0],
+                        &tokens[2],
+                    ));
+                    pares_avaliados.push(criar_par_avaliado(
+                        (offset_verso + 1, offset_verso + 3),
+                        &tokens[1],
+                        &tokens[3],
+                    ));
                 }
                 "AABB" => {
                     // Emparelhada: (1, 2) e (3, 4)
-                    let (q1, j1) = avaliar_par_rima(&tokens[0], &tokens[1]);
-                    pares_avaliados.push(ParRimaAvaliado {
-                        versos: (offset_verso, offset_verso + 1),
-                        tokens: (tokens[0].texto.clone(), tokens[1].texto.clone()),
-                        classificacao: q1,
-                        auditoria: j1,
-                    });
-
-                    let (q2, j2) = avaliar_par_rima(&tokens[2], &tokens[3]);
-                    pares_avaliados.push(ParRimaAvaliado {
-                        versos: (offset_verso + 2, offset_verso + 3),
-                        tokens: (tokens[2].texto.clone(), tokens[3].texto.clone()),
-                        classificacao: q2,
-                        auditoria: j2,
-                    });
+                    pares_avaliados.push(criar_par_avaliado(
+                        (offset_verso, offset_verso + 1),
+                        &tokens[0],
+                        &tokens[1],
+                    ));
+                    pares_avaliados.push(criar_par_avaliado(
+                        (offset_verso + 2, offset_verso + 3),
+                        &tokens[2],
+                        &tokens[3],
+                    ));
                 }
                 _ => {
                     // Agrupamento genérico por feixe de caracteres
@@ -386,13 +633,11 @@ fn avaliar_grupos_genericos(
         for w in indices.windows(2) {
             let i1 = w[0];
             let i2 = w[1];
-            let (qual, just) = avaliar_par_rima(&tokens[i1], &tokens[i2]);
-            resultado.push(ParRimaAvaliado {
-                versos: (offset_verso + i1, offset_verso + i2),
-                tokens: (tokens[i1].texto.clone(), tokens[i2].texto.clone()),
-                classificacao: qual,
-                auditoria: just,
-            });
+            resultado.push(criar_par_avaliado(
+                (offset_verso + i1, offset_verso + i2),
+                &tokens[i1],
+                &tokens[i2],
+            ));
         }
     }
 

@@ -244,13 +244,13 @@ fn test_graus_epistemicos_e_rima_rara() {
         other => panic!("Esperava ProvavelPobre para amada x desejada, obteve: {:?}", other),
     }
 
-    // 2. Verbo categórico x termo com homografia secundária -> ProvavelRica
-    let t_arde = extrair_token_rimante("A chama viva que no peito arde", 0);
-    let t_tarde = extrair_token_rimante("Na sombra fria que descamba à tarde", 1);
-    let (qual_hom, _) = avaliar_par_rima(&t_arde, &t_tarde);
+    // 2. Verbo categórico x termo com homografia verbal secundária -> ProvavelRica
+    let t_chora = extrair_token_rimante("Na solidão ela chora", 0);
+    let t_hora = extrair_token_rimante("Esperando o fim da incerta hora", 1);
+    let (qual_hom, _) = avaliar_par_rima(&t_chora, &t_hora);
     match qual_hom {
         QualidadeRima::ProvavelRica { .. } => {}
-        other => panic!("Esperava ProvavelRica para arde x tarde, obteve: {:?}", other),
+        other => panic!("Esperava ProvavelRica para chora x hora, obteve: {:?}", other),
     }
 
     // 3. Rima Rara por escassez fonológica de terminação
