@@ -214,3 +214,48 @@ fn test_dafsa_ampla_vocabulario_geral_e_gabarito() {
     let pelejou = consultar_lexico("pelejou").expect("pelejou deve constar na DAFSA ampla");
     assert!(pelejou.contains(PosMask::VERBO));
 }
+
+#[test]
+fn test_deteccao_rimas_cliche() {
+    use joaju_lirica::morphology::verificar_cliche;
+
+    assert!(verificar_cliche("amor", "dor").is_some());
+    assert!(verificar_cliche("mar", "amar").is_some());
+    assert!(verificar_cliche("coração", "ilusão").is_some());
+    assert!(verificar_cliche("vento", "pensamento").is_some());
+    assert!(verificar_cliche("estrela", "vê-la").is_none());
+
+    // Teste no relatório completo de estrofe
+    let poema = "O meu primeiro e desolado amor,\nNa solidão profunda desta dor,\nLateja aflito o pobre coração,\nAlimentando a doce ilusão.";
+    let rel = classificar_rimas_poema(poema);
+    let p1 = &rel.estrofes[0].pares_avaliados[0]; // amor x dor
+    assert!(p1.eh_cliche, "amor x dor deve ser marcado como clichê no par");
+    assert!(p1.motivo_cliche.is_some());
+}
+
+#[test]
+fn test_graus_epistemicos_e_rima_rara() {
+    // 1. Particípios / adjetivos verbais equivalentes -> ProvavelPobre
+    let t_amada = extrair_token_rimante("A minha doce e pálida amada", 0);
+    let t_desejada = extrair_token_rimante("Por toda a vida sempre desejada", 1);
+    let (qual_part, _) = avaliar_par_rima(&t_amada, &t_desejada);
+    match qual_part {
+        QualidadeRima::ProvavelPobre { .. } => {}
+        other => panic!("Esperava ProvavelPobre para amada x desejada, obteve: {:?}", other),
+    }
+
+    // 2. Verbo categórico x termo com homografia secundária -> ProvavelRica
+    let t_arde = extrair_token_rimante("A chama viva que no peito arde", 0);
+    let t_tarde = extrair_token_rimante("Na sombra fria que descamba à tarde", 1);
+    let (qual_hom, _) = avaliar_par_rima(&t_arde, &t_tarde);
+    match qual_hom {
+        QualidadeRima::ProvavelRica { .. } => {}
+        other => panic!("Esperava ProvavelRica para arde x tarde, obteve: {:?}", other),
+    }
+
+    // 3. Rima Rara por escassez fonológica de terminação
+    let t_claustro = extrair_token_rimante("O monge recluso no claustro", 0);
+    let t_balaustro = extrair_token_rimante("Apoiou a mão no balaustro", 1);
+    let (qual_rara, _) = avaliar_par_rima(&t_claustro, &t_balaustro);
+    assert_eq!(qual_rara, QualidadeRima::Rara);
+}
