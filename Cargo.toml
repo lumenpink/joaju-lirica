@@ -1,6 +1,6 @@
 [package]
 name = "joaju-lirica"
-version = "0.6.0-dev.61+20261109.fafe10c"
+version = "0.6.0-dev.62+20261109.4c655f0"
 edition = "2021"
 description = "Deterministic poetic scansion and rhythm analysis engine in Rust for Portuguese verse"
 license = "Apache-2.0"

@@ -3,7 +3,17 @@
 **Ticket:** #20  
 **Branch:** `feat/20-graus-epistemicos-de-rima-e-detector-de-cliches`  
 **Escopo:** `joaju-lirica` (`src/morphology/`: `classifier.rs`, `cliches.rs`, `pos_mask.rs`, `dafsa.rs`, `lookback.rs`)  
-**Status:** Em Desenvolvimento (Fase 3: Spec)
+**Status:** Concluído e Validado (Fase 9: Close)
+
+### Resultados Finais de Validação (55 Poemas Canônicos / 199 Pares de Rima)
+- **Rimas Pobres (100% Certeza):** 81 (40.7%)
+- **Rimas Ricas (100% Certeza):** 51 (25.6%)
+- **Rimas Preciosas:** 2
+- **Rimas Raras:** 0
+- **Prováveis Pobres:** 38 (19.1%)
+- **Prováveis Ricas:** 0 (0.0%)
+- **Indeterminadas:** Reduzidas para 27 (apenas 13.6%, queda substancial em relação aos 79.4% anteriores)
+- **Rimas Clichê Detectadas:** 16 pares (8.0%) com justificativas históricas e estilísticas
 
 ---
 
