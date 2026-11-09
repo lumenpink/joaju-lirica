@@ -331,7 +331,10 @@ fn avaliar_soneto_ingles(
         score += 20.0;
     } else {
         score += 20.0 * (1.0 - (total as f32 - 14.0).abs() / 14.0).max(0.0);
-        obs.push(format!("Possui {} versos em vez dos 14 exigidos para o soneto.", total));
+        obs.push(format!(
+            "Possui {} versos em vez dos 14 exigidos para o soneto.",
+            total
+        ));
     }
 
     if estrofes_layout == [4, 4, 4, 2] {
@@ -642,8 +645,16 @@ fn avaliar_sonetilha(
         .iter()
         .filter(|v| v.total_metricas == 5)
         .count();
-    let alvo_metro = if redondilhas_menores > redondilhas_maiores { 5 } else { 7 };
-    let conformes = if alvo_metro == 5 { redondilhas_menores } else { redondilhas_maiores };
+    let alvo_metro = if redondilhas_menores > redondilhas_maiores {
+        5
+    } else {
+        7
+    };
+    let conformes = if alvo_metro == 5 {
+        redondilhas_menores
+    } else {
+        redondilhas_maiores
+    };
 
     if (conformes as f32 / total as f32) < 0.5 {
         return None;
@@ -673,7 +684,10 @@ fn avaliar_sonetilha(
         obs.push("Versos agrupados em bloco único sem separação por estrofes.".to_string());
     } else {
         score += 5.0;
-        obs.push(format!("Divisão estrófica ({}) desvia do padrão clássico de sonetilha (4+4+3+3 ou 4+4+4+2).", layout_str));
+        obs.push(format!(
+            "Divisão estrófica ({}) desvia do padrão clássico de sonetilha (4+4+3+3 ou 4+4+4+2).",
+            layout_str
+        ));
     }
 
     // 2. Métrica (peso 35%)
@@ -745,7 +759,10 @@ fn avaliar_septilha(
     let mut obs = Vec::new();
 
     if total != 7 {
-        obs.push(format!("Possui {} versos em vez dos 7 exigidos para a septilha.", total));
+        obs.push(format!(
+            "Possui {} versos em vez dos 7 exigidos para a septilha.",
+            total
+        ));
     }
 
     let redondilhas = poema
@@ -774,7 +791,9 @@ fn avaliar_septilha(
 
         if pares_2_4_7 && emparelhados_5_6 {
             1.0
-        } else if (chars[1] == chars[3] && chars[3] == chars[6]) || (chars[1] == chars[3] && emparelhados_5_6) {
+        } else if (chars[1] == chars[3] && chars[3] == chars[6])
+            || (chars[1] == chars[3] && emparelhados_5_6)
+        {
             0.75
         } else if chars[1] == chars[3] || emparelhados_5_6 {
             0.5

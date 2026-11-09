@@ -162,7 +162,8 @@ Quando este chão for puro e bem perfeito,
 Nosso amor dormirá em santo leito.";
 
     let poema = escandir_poema(texto, false, false, true, true);
-    let diag = avaliar_forma_poetica(&poema).expect("Deve detectar Soneto Inglês (Shakespeariano / Spenseriano)");
+    let diag = avaliar_forma_poetica(&poema)
+        .expect("Deve detectar Soneto Inglês (Shakespeariano / Spenseriano)");
     assert!(diag.nome.contains("Soneto Inglês"));
     assert_eq!(
         diag.confianca_percentual, 100,
