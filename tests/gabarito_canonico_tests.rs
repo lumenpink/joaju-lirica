@@ -284,13 +284,7 @@ fn test_contraprova_gabarito_desvio_detectado() {
     linhas[ult_idx] = sub;
     let texto_mutado = linhas.join("\n");
 
-    let p = escandir_poema(
-        &texto_mutado,
-        false,
-        false,
-        true,
-        true,
-    );
+    let p = escandir_poema(&texto_mutado, false, false, true, true);
     let diag = joaju_lirica::avaliar_forma_poetica(&p).unwrap();
     assert!(diag.nome.contains("Soneto Inglês"));
     assert!(

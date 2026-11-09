@@ -139,18 +139,12 @@ fn test_execucao_todas_mutacoes_declarativas_corpus() {
         for mutacao in &poema.mutacoes {
             let texto_mutado = aplicar_mutacoes_texto(&poema.texto, &mutacao.operacoes);
 
-            let castilho = mutacao
-                .flags
-                .contagem_castilho
-                .unwrap_or(true); // Padrão é true
+            let castilho = mutacao.flags.contagem_castilho.unwrap_or(true); // Padrão é true
             let elidir_pont = mutacao
                 .flags
                 .elidir_pontuacao
                 .unwrap_or(poema.elidir_pontuacao);
-            let rima = mutacao
-                .flags
-                .forcar_rima_estrita
-                .unwrap_or(true);
+            let rima = mutacao.flags.forcar_rima_estrita.unwrap_or(true);
 
             let p = escandir_poema(&texto_mutado, elidir_pont, false, castilho, rima);
             let diag = avaliar_forma_poetica(&p)
@@ -160,7 +154,9 @@ fn test_execucao_todas_mutacoes_declarativas_corpus() {
                 assert!(
                     diag.nome.contains(forma_esp),
                     "Mutação '{}': forma esperada contendo '{}', obtida '{}'",
-                    mutacao.id, forma_esp, diag.nome
+                    mutacao.id,
+                    forma_esp,
+                    diag.nome
                 );
             }
 
@@ -187,7 +183,9 @@ fn test_execucao_todas_mutacoes_declarativas_corpus() {
             if let Some(ref obs_obrig) = mutacao.expectativa.observacoes_obrigatorias {
                 for obs_esperada in obs_obrig {
                     assert!(
-                        diag.observacoes.iter().any(|o| o.to_lowercase().contains(&obs_esperada.to_lowercase())),
+                        diag.observacoes
+                            .iter()
+                            .any(|o| o.to_lowercase().contains(&obs_esperada.to_lowercase())),
                         "Mutação '{}': observação obrigatória '{}' não encontrada em: {:?}",
                         mutacao.id,
                         obs_esperada,

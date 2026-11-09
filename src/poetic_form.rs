@@ -637,7 +637,10 @@ fn avaliar_sextilha(
     score += 30.0 * match_rima;
 
     if match_rima < 0.95 {
-        obs.push("Versos pares (2º, 4º e 6º) não apresentam consonância ou rima mútua perfeita.".to_string());
+        obs.push(
+            "Versos pares (2º, 4º e 6º) não apresentam consonância ou rima mútua perfeita."
+                .to_string(),
+        );
     }
 
     let final_score = score.round().clamp(0.0, 100.0) as u8;
