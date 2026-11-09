@@ -196,3 +196,21 @@ Sem a esperança de a merecer.";
     assert_eq!(par.tokens, ("estrela".to_string(), "vê-la".to_string()));
     assert_eq!(par.classificacao, QualidadeRima::Preciosa);
 }
+
+#[test]
+fn test_dafsa_ampla_vocabulario_geral_e_gabarito() {
+    use joaju_lirica::morphology::consultar_lexico;
+
+    // Vocábulos do soneto Profana e outros poemas do gabarito que antes eram UNKNOWN:
+    let musa = consultar_lexico("musa").expect("musa deve constar na DAFSA ampla");
+    assert!(musa.contains(PosMask::SUBSTANTIVO));
+
+    let tribunal = consultar_lexico("tribunal").expect("tribunal deve constar na DAFSA ampla");
+    assert!(tribunal.contains(PosMask::SUBSTANTIVO));
+
+    let venal = consultar_lexico("venal").expect("venal deve constar na DAFSA ampla");
+    assert!(venal.contains(PosMask::ADJETIVO));
+
+    let pelejou = consultar_lexico("pelejou").expect("pelejou deve constar na DAFSA ampla");
+    assert!(pelejou.contains(PosMask::VERBO));
+}
