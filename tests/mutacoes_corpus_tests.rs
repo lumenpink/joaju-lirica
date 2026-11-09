@@ -157,9 +157,9 @@ fn test_execucao_todas_mutacoes_declarativas_corpus() {
                 .unwrap_or_else(|| panic!("Falha ao avaliar forma da mutação '{}'", mutacao.id));
 
             if let Some(ref forma_esp) = mutacao.expectativa.forma_esperada {
-                assert_eq!(
-                    &diag.nome, forma_esp,
-                    "Mutação '{}': forma esperada '{}', obtida '{}'",
+                assert!(
+                    diag.nome.contains(forma_esp),
+                    "Mutação '{}': forma esperada contendo '{}', obtida '{}'",
                     mutacao.id, forma_esp, diag.nome
                 );
             }

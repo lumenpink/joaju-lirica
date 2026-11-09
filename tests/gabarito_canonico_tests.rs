@@ -262,15 +262,31 @@ fn test_sonetilha_e_cordel_gabarito_100_por_cento() {
 #[test]
 fn test_contraprova_gabarito_desvio_detectado() {
     let json_data = include_str!("corpus/gabarito_canonico.json");
-    let gabarito: Vec<PoemaGabarito> = serde_json::from_str(json_data).unwrap();
+    let gabarito: Vec<serde_json::Value> = serde_json::from_str(json_data).unwrap();
 
-    let p_contra = gabarito
+    let p_profana = gabarito
         .iter()
-        .find(|p| p.id == "profana_contraprova_distico")
-        .unwrap();
+        .find(|p| p["id"] == "profana_shakespeariano")
+        .expect("Deve encontrar profana_shakespeariano");
+
+    let mutacoes = p_profana["mutacoes"]
+        .as_array()
+        .expect("Profana deve possuir mutações");
+    let m_distico = mutacoes
+        .iter()
+        .find(|m| m["id"] == "profana_quebra_distico")
+        .expect("Deve encontrar profana_quebra_distico");
+
+    let texto_original = p_profana["texto"].as_str().unwrap();
+    let sub = &m_distico["operacoes"][0]["texto"].as_str().unwrap();
+    let mut linhas: Vec<&str> = texto_original.lines().collect();
+    let ult_idx = linhas.len() - 1;
+    linhas[ult_idx] = sub;
+    let texto_mutado = linhas.join("\n");
+
     let p = escandir_poema(
-        &p_contra.texto,
-        p_contra.elidir_pontuacao,
+        &texto_mutado,
+        false,
         false,
         true,
         true,

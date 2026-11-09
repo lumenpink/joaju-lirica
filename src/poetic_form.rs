@@ -235,8 +235,13 @@ fn avaliar_soneto_italiano(
         .iter()
         .filter(|v| v.total_metricas == 12)
         .count();
+    let versos_arte_maior = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas >= 10)
+        .count();
 
-    if decassilabos == 0 && alexandrinos == 0 {
+    if versos_arte_maior == 0 {
         return None;
     }
 
@@ -284,7 +289,7 @@ fn avaliar_soneto_italiano(
     }
     score += 30.0 * melhor_match;
 
-    if melhor_match < 0.90 && !esquema.is_empty() {
+    if melhor_match < 0.95 && !esquema.is_empty() {
         obs.push(format!("Esquema de rimas '{}' apresenta variações nos tercetos ou quadras em relação aos modelos clássicos petrarquianos.", esquema));
     }
 
@@ -319,7 +324,12 @@ fn avaliar_soneto_ingles(
         .iter()
         .filter(|v| v.total_metricas == 10)
         .count();
-    if decassilabos == 0 {
+    let versos_arte_maior = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas >= 10)
+        .count();
+    if versos_arte_maior == 0 {
         return None;
     }
 
@@ -389,7 +399,7 @@ fn avaliar_soneto_ingles(
     }
 
     let final_score = score.round().clamp(0.0, 100.0) as u8;
-    if final_score >= 45 {
+    if final_score >= 40 {
         let (nome, desc, padrao) = if eh_spenseriano {
             (
                 "Soneto Inglês (Spenseriano)".to_string(),
@@ -444,10 +454,44 @@ fn avaliar_martelo_agalopado(
     }
 
     let mut score = 30.0 * (1.0 - (total as f32 - 10.0).abs() / 10.0).max(0.0);
+    let mut obs = Vec::new();
+
+    if total != 10 {
+        obs.push(format!(
+            "Possui {} versos em vez dos 10 exigidos para o martelo agalopado.",
+            total
+        ));
+    }
+
     score += 40.0 * (martelos as f32 / total as f32);
+    for (idx, v) in poema.versos.iter().enumerate() {
+        if v.total_metricas != 10 {
+            obs.push(format!(
+                "Verso {} possui {} sílabas métricas em vez de 10.",
+                idx + 1,
+                v.total_metricas
+            ));
+        } else if !(v.esquema_tonico.contains(&3)
+            && v.esquema_tonico.contains(&6)
+            && v.esquema_tonico.contains(&10))
+        {
+            obs.push(format!(
+                "Verso {} não possui as tônicas martelo nas posições 3, 6 e 10.",
+                idx + 1
+            ));
+        }
+    }
+
     let match_rima =
         comparar_esquemas(esquema, "AABBAABBCC").max(comparar_esquemas(esquema, "ABBAACCDDC"));
     score += 30.0 * match_rima;
+
+    if match_rima < 0.95 {
+        obs.push(format!(
+            "Esquema de rimas '{}' desvia dos padrões tradicionais 'AABBAABBCC' ou 'ABBAACCDDC'.",
+            esquema
+        ));
+    }
 
     let final_score = score.round().clamp(0.0, 100.0) as u8;
     if final_score >= 50 {
@@ -457,7 +501,7 @@ fn avaliar_martelo_agalopado(
             descricao: "Modalidade tradicional do repente nordestino e cordel: décima em decassílabos cantados em ritmo acelerado com acentuações marcadas na 3ª, 6ª e 10ª sílabas métricas.".to_string(),
             padrao_esperado: "10 versos decassílabos martelo (3, 6, 10) | Rimas AABBAABBCC ou ABBAACCDDC".to_string(),
             estrutura_detectada: layout_str.to_string(),
-            observacoes: Vec::new(),
+            observacoes: obs,
         })
     } else {
         None
@@ -476,14 +520,53 @@ fn avaliar_oitava_camoniana(
     }
 
     let mut score = 35.0 * (1.0 - (total as f32 - 8.0).abs() / 8.0).max(0.0);
+    let mut obs = Vec::new();
+
+    if total != 8 {
+        obs.push(format!(
+            "Possui {} versos em vez dos 8 canônicos da oitava camoniana.",
+            total
+        ));
+    }
+
     let decassilabos = poema
         .versos
         .iter()
         .filter(|v| v.total_metricas == 10)
         .count();
     score += 35.0 * (decassilabos as f32 / total as f32);
+
+    for (idx, v) in poema.versos.iter().enumerate() {
+        if v.total_metricas != 10 {
+            obs.push(format!(
+                "Verso {} possui {} sílabas métricas em vez de 10.",
+                idx + 1,
+                v.total_metricas
+            ));
+        }
+    }
+
     let match_rima = comparar_esquemas(esquema, "ABABABCC");
     score += 30.0 * match_rima;
+
+    if match_rima < 0.95 {
+        if esquema.len() >= 8 {
+            let chars: Vec<char> = esquema.chars().collect();
+            if chars[6] != chars[7] {
+                obs.push("O dístico final (versos 7 e 8) não rima entre si, quebrando o fecho heroico da oitava.".to_string());
+            } else {
+                obs.push(format!(
+                    "Esquema de rimas '{}' difere do padrão alternado com dístico 'ABABABCC'.",
+                    esquema
+                ));
+            }
+        } else {
+            obs.push(format!(
+                "Esquema de rimas '{}' difere do padrão 'ABABABCC'.",
+                esquema
+            ));
+        }
+    }
 
     let final_score = score.round().clamp(0.0, 100.0) as u8;
     if final_score >= 50 {
@@ -493,7 +576,7 @@ fn avaliar_oitava_camoniana(
             descricao: "A estrofe épica renascentista imortalizada por Camões em 'Os Lusíadas': 8 versos decassílabos heroicos com seis versos alternados e um dístico de fecho (ABABABCC).".to_string(),
             padrao_esperado: "8 versos decassílabos heroicos | Rimas ABABABCC".to_string(),
             estrutura_detectada: layout_str.to_string(),
-            observacoes: Vec::new(),
+            observacoes: obs,
         })
     } else {
         None
@@ -512,12 +595,32 @@ fn avaliar_sextilha(
     }
 
     let mut score = 35.0 * (1.0 - (total as f32 - 6.0).abs() / 6.0).max(0.0);
+    let mut obs = Vec::new();
+
+    if total != 6 {
+        obs.push(format!(
+            "Possui {} versos em vez dos 6 canônicos da sextilha de cordel.",
+            total
+        ));
+    }
+
     let redondilhas = poema
         .versos
         .iter()
         .filter(|v| v.total_metricas == 7)
         .count();
     score += 35.0 * (redondilhas as f32 / total as f32);
+
+    for (idx, v) in poema.versos.iter().enumerate() {
+        if v.total_metricas != 7 {
+            obs.push(format!(
+                "Verso {} possui {} sílabas métricas em vez das 7 da redondilha maior.",
+                idx + 1,
+                v.total_metricas
+            ));
+        }
+    }
+
     // Versos pares rimam (2, 4, 6)
     let match_rima = if esquema.len() >= 6 {
         let chars: Vec<char> = esquema.chars().collect();
@@ -533,6 +636,10 @@ fn avaliar_sextilha(
     };
     score += 30.0 * match_rima;
 
+    if match_rima < 0.95 {
+        obs.push("Versos pares (2º, 4º e 6º) não apresentam consonância ou rima mútua perfeita.".to_string());
+    }
+
     let final_score = score.round().clamp(0.0, 100.0) as u8;
     if final_score >= 50 {
         Some(DiagnosticoForma {
@@ -541,7 +648,7 @@ fn avaliar_sextilha(
             descricao: "Estrutura mestra da poesia popular e literatura de cordel brasileira: 6 versos em Redondilha Maior (7 sílabas) com rima obrigatória nos versos pares (2, 4 e 6).".to_string(),
             padrao_esperado: "6 versos em Redondilha Maior (7s) | Rimas XAXAXA / ABCBDB".to_string(),
             estrutura_detectada: layout_str.to_string(),
-            observacoes: Vec::new(),
+            observacoes: obs,
         })
     } else {
         None
@@ -656,7 +763,18 @@ fn avaliar_sonetilha(
         redondilhas_maiores
     };
 
-    if (conformes as f32 / total as f32) < 0.5 {
+    let versos_arte_maior = poema
+        .versos
+        .iter()
+        .filter(|v| v.total_metricas >= 10)
+        .count();
+    let redondilhas = poema
+        .versos
+        .iter()
+        .filter(|v| (5..=8).contains(&v.total_metricas))
+        .count();
+
+    if redondilhas <= versos_arte_maior {
         return None;
     }
 
@@ -725,12 +843,12 @@ fn avaliar_sonetilha(
     }
     score += 30.0 * melhor_match;
 
-    if melhor_match < 0.85 && !esquema.is_empty() {
+    if melhor_match < 0.95 && !esquema.is_empty() {
         obs.push(format!("Esquema de rimas '{}' apresenta variações em relação aos modelos clássicos de sonetilha.", esquema));
     }
 
     let final_score = score.round().clamp(0.0, 100.0) as u8;
-    if final_score >= 45 {
+    if final_score >= 40 {
         Some(DiagnosticoForma {
             nome: "Sonetilha (Sonetino)".to_string(),
             confianca_percentual: final_score,
