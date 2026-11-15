@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Suporte a sinalefa terciária por crase homófona através de clítico átono intermediário (ex.: 'serra a alvorecer') com proteção estrita contra absorção de tônicas (closes #21).
+
 ### Changed
 - Remoção de campo `permissions:` incompatível com Forgejo Actions (closes #10).
 

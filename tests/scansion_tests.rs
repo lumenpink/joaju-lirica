@@ -396,20 +396,14 @@ fn test_sinalefa_terciaria_clitico_atono_intermediario() {
     // 3. Mutação: pontuação entre serra e o clítico bloqueia sinalefa
     let esc_virgula = escandir_verso("O horizonte da serra, a alvorecer");
     assert!(
-        !esc_virgula
-            .silabas
-            .iter()
-            .any(|s| s.texto.contains("ra_a")),
+        !esc_virgula.silabas.iter().any(|s| s.texto.contains("ra_a")),
         "Vírgula após serra deve bloquear a sinalefa"
     );
 
     // 4. Mutação: barra / força hiato
     let esc_hiato = escandir_verso("O horizonte da serra / a alvorecer");
     assert!(
-        !esc_hiato
-            .silabas
-            .iter()
-            .any(|s| s.texto.contains("ra_a")),
+        !esc_hiato.silabas.iter().any(|s| s.texto.contains("ra_a")),
         "Barra / deve forçar hiato"
     );
 
