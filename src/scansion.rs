@@ -217,13 +217,30 @@ pub fn escandir_verso_com_opcoes(
             // Sinalefa terciária em cadeia de clíticos: nunca pode absorver uma sílaba tônica seguinte.
             let bloqueia_terciaria_por_tonica = atual.texto.contains('_') && prox.tonica;
 
+            let eh_fusao_terciaria = atual.texto.contains('_');
+            let compativel_terciaria = if eh_fusao_terciaria && !atual.eh_clitico_atono {
+                // Para palavras plenas com clítico intermediário, a fusão terciária é estrita à crase
+                // homófona de vogais de mesmo timbre básico (ex.: "serra a alvorecer" [a + a + a] -> ra_a_al),
+                // impedindo falsos tritongos com timbres heterogêneos (ex.: "como o acidente" [o + o + a],
+                // "logo o arrebatou" [o + o + a]), que mantêm hiato métrico na tradição clássica.
+                let ult_char = atual.texto.chars().last().unwrap_or(' ');
+                let prim_char = prox.texto.chars().next().unwrap_or(' ');
+                match (timbre_vocalico(ult_char), timbre_vocalico(prim_char)) {
+                    (Some(t1), Some(t2)) => t1 == t2,
+                    _ => false,
+                }
+            } else {
+                true
+            };
+
             let pode_fundir = (atual.fim_de_palavra
                 && !atual.bloqueia_sinalefa
                 && termina_vogal
                 && !termina_em_ditongo
                 && comeca_som_vocalico
                 && !bloqueia_por_tonica
-                && !bloqueia_terciaria_por_tonica)
+                && !bloqueia_terciaria_por_tonica
+                && compativel_terciaria)
                 || atual.forcar_sinalefa_proxima;
 
             if pode_fundir {
@@ -237,11 +254,14 @@ pub fn escandir_verso_com_opcoes(
 
                 // A sinalefa canônica na métrica lusófona é prioritariamente binária (une 2 sílabas
                 // vocálicas contíguas). Não absorve uma 3ª palavra em tritongo, exceto se houver '_'
-                // forçado ou se for uma cadeia de clíticos monossilábicos contíguos
-                // (ex.: "Transforma-se o amador" -> se_o_a; "fez-se a espuma" -> se_a_es).
+                // forçado, se for uma cadeia de clíticos monossilábicos contíguos
+                // (ex.: "Transforma-se o amador" -> se_o_a; "fez-se a espuma" -> se_a_es)
+                // ou se a sílaba intermediária absorvida for um clítico átono (ponte prosódica)
+                // entre vogais átonas (ex.: "serra a alvorecer" -> ra_a_al).
+                let clitico_ponte_atono = prox.eh_clitico_atono && !prox.tonica && !atual.tonica;
                 let cadeia_cliticos_atonos =
                     atual.eh_clitico_atono && prox.eh_clitico_atono && !prox.tonica;
-                if !forcar_prox && !cadeia_cliticos_atonos {
+                if !forcar_prox && !cadeia_cliticos_atonos && !clitico_ponte_atono {
                     break;
                 }
             } else {

@@ -51,6 +51,19 @@ pub fn is_tilde(c: char) -> bool {
     matches!(to_lower(c), 'ã' | 'õ')
 }
 
+/// Returns the canonical vowel timbre ('a', 'e', 'i', 'o', 'u') or None if not a vowel.
+#[inline]
+pub fn timbre_vocalico(c: char) -> Option<char> {
+    match to_lower(c) {
+        'a' | 'á' | 'à' | 'ã' | 'â' => Some('a'),
+        'e' | 'é' | 'ê' => Some('e'),
+        'i' | 'í' => Some('i'),
+        'o' | 'ó' | 'ô' | 'õ' => Some('o'),
+        'u' | 'ú' | 'ü' => Some('u'),
+        _ => None,
+    }
+}
+
 /// Checks whether a character acts as a semivowel (`i` or `u` unaccented).
 #[inline]
 pub fn is_semivowel(c: char) -> bool {
