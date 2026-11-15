@@ -3,7 +3,7 @@
 **Ticket:** #21  
 **Branch:** `feat/21-sinalefa-terciaria-com-clitico-atono-intermediario`  
 **Escopo:** `joaju-lirica` (`src/scansion.rs`)  
-**Status:** Concluído e Validado (Fases 1 a 8)
+**Status:** Concluído e Validado (Fase 9: Close)
 
 ---
 
