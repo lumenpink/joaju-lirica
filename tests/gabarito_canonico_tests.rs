@@ -26,8 +26,8 @@ fn test_gabarito_canonico_verso_a_verso() {
         serde_json::from_str(json_data).expect("Deve desserializar gabarito_canonico.json");
 
     assert!(
-        gabarito.len() >= 50,
-        "Gabarito Canônico deve conter pelo menos 50 poemas, contém {}",
+        gabarito.len() >= 61,
+        "Gabarito Canônico deve conter pelo menos 61 poemas, contém {}",
         gabarito.len()
     );
 
@@ -93,6 +93,12 @@ fn test_gabarito_canonico_verso_a_verso() {
         "\n★ GABARITO CANÔNICO: {}/{} poemas com 100% de conformidade exata (total versos: {})",
         poemas_100_por_cento,
         gabarito.len(),
+        total_versos_auditados
+    );
+
+    assert!(
+        total_versos_auditados >= 570,
+        "Total de versos auditados deve ser >= 570, foi {}",
         total_versos_auditados
     );
 

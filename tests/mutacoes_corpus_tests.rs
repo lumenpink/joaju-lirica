@@ -130,8 +130,8 @@ fn test_execucao_todas_mutacoes_declarativas_corpus() {
 
     let total_mutacoes: usize = gabarito.iter().map(|p| p.mutacoes.len()).sum();
     assert!(
-        total_mutacoes >= 50,
-        "O gabarito deve conter pelo menos 50 mutações declarativas exaustivas, encontrou {}",
+        total_mutacoes >= 106,
+        "O gabarito deve conter pelo menos 106 mutações declarativas exaustivas, encontrou {}",
         total_mutacoes
     );
 
