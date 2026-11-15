@@ -354,3 +354,39 @@ fn test_gorjeiam_e_override_apostrofo() {
     let esc4 = escandir_verso("a'mor");
     assert_eq!(esc4.esquema_tonico, vec![1]);
 }
+
+#[test]
+fn test_sinalefa_terciaria_clitico_atono_intermediario() {
+    // 1. Caso canônico: "O horizonte da serra a alvorecer" deve ser decassílabo (10 sílabas)
+    let esc = escandir_verso("O horizonte da serra a alvorecer");
+    assert_eq!(
+        esc.total_metricas, 10,
+        "Verso 'O horizonte da serra a alvorecer' deve ser decassílabo de 10 sílabas, teve {}",
+        esc.total_metricas
+    );
+    assert!(
+        esc.classificacao
+            .as_deref()
+            .unwrap_or("")
+            .contains("Decassílabo"),
+        "Deve ser classificado como Decassílabo, foi {:?}",
+        esc.classificacao
+    );
+    assert_eq!(
+        esc.esquema_tonico,
+        vec![3, 6, 10],
+        "Tônicas devem ser [3, 6, 10]"
+    );
+    assert!(
+        esc.silabas.iter().any(|s| s.texto == "ra_a_al"),
+        "Sílaba 7 deve ser fusão terciária 'ra_a_al', sílabas foram: {:?}",
+        esc.silabas.iter().map(|s| &s.texto).collect::<Vec<_>>()
+    );
+
+    // 2. Contraprova: sílaba tônica em 3ª posição não pode ser absorvida
+    let esc_tonica = escandir_verso("A serra a águia viu passar");
+    assert!(
+        !esc_tonica.silabas.iter().any(|s| s.texto.contains("ra_a_á")),
+        "Sílaba tônica 'á' não pode ser absorvida em fusão terciária"
+    );
+}
