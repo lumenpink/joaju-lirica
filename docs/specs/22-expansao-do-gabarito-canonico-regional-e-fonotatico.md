@@ -3,7 +3,7 @@
 **Ticket:** #22  
 **Branch:** `feat/22-expansao-do-gabarito-canonico-regional-e-fonotatico`  
 **Escopo:** `joaju-lirica` (`tests/corpus/gabarito_canonico.json`, `tests/gabarito_canonico_tests.rs`, `tests/mutacoes_corpus_tests.rs`)  
-**Status:** Concluído e Validado (Fases 1 a 8 - Quality Gate Aprovado)
+**Status:** Concluído e Validado (Fase 9: Close)
 
 ---
 
