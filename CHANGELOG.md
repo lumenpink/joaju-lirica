@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Expansão do Gabarito Canônico para 61 poemas e 573 versos auditados, incorporando formas regionais brasileiras (Cordel in-octavo, Pajada Gaúcha, Galope à Beira-Mar), simbolismo e parnasianismo de alta tensão prosódica, matriz de sentinelas fonotáticos e 106 mutações declarativas negativas (closes #22).
 - Suporte a sinalefa terciária por crase homófona através de clítico átono intermediário (ex.: 'serra a alvorecer') com proteção estrita contra absorção de tônicas (closes #21).
 
 ### Changed
