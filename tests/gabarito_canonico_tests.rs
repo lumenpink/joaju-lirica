@@ -396,3 +396,32 @@ fn test_classificacao_rimas_gabarito_canonico() {
         joaju_lirica::morphology::QualidadeRima::Rica
     );
 }
+
+#[test]
+fn test_expansao_regional_e_fonotatica_gabarito() {
+    let json_data = include_str!("corpus/gabarito_canonico.json");
+    let gabarito: Vec<PoemaGabarito> =
+        serde_json::from_str(json_data).expect("Deve desserializar gabarito_canonico.json");
+
+    let ids_obrigatorios = [
+        "cordel_pavao_misterioso",
+        "pajada_gaucha_pampa",
+        "galope_beira_mar_calunga",
+        "augusto_anjos_vencido",
+        "cruz_sousa_carceres",
+        "sentinelas_fonotaticos_fronteira",
+    ];
+
+    for id in &ids_obrigatorios {
+        let poema = gabarito
+            .iter()
+            .find(|p| p.id == *id)
+            .unwrap_or_else(|| panic!("Gabarito deve conter a peça expandida '{}'", id));
+
+        assert!(
+            !poema.versos_esperados.is_empty(),
+            "Peça '{}' deve possuir versos auditados",
+            id
+        );
+    }
+}
