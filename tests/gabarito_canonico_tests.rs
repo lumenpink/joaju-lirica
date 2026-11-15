@@ -423,5 +423,8 @@ fn test_expansao_regional_e_fonotatica_gabarito() {
             "Peça '{}' deve possuir versos auditados",
             id
         );
+
+        let p = escandir_poema(&poema.texto, poema.elidir_pontuacao, false, true, true);
+        let _ = joaju_lirica::avaliar_forma_poetica(&p);
     }
 }
