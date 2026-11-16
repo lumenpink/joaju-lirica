@@ -3,7 +3,7 @@
 **Ticket:** #23  
 **Branch:** `fix/23-normalizar-branch-antes-do-cccp-check-em-eventos-de-tag`  
 **Escopo:** `joaju-lirica` (`.forgejo/workflows/ci.yml`, `tests/version_spec.rs`)  
-**Status:** Em Especificação (Fase 3: Spec)
+**Status:** Concluído e Validado (Fases 1 a 8 - Quality Gate Aprovado)
 
 ---
 
