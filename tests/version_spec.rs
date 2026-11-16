@@ -42,4 +42,12 @@ fn test_ci_workflow_detached_head_normalization() {
         ci_yaml.contains("git checkout -B"),
         "CI workflow must normalize detached HEAD before invoking cccp check"
     );
+    assert!(
+        !ci_yaml.contains("cccp check --strict || true"),
+        "CI workflow must not bypass cccp check with || true"
+    );
+    assert!(
+        ci_yaml.contains("cccp check --strict"),
+        "CI workflow must preserve strict cccp check"
+    );
 }
