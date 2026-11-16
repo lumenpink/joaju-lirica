@@ -34,3 +34,12 @@ fn test_ci_workflow_kombinat_notification_and_no_codeberg() {
         "CI workflow must configure lumen registry"
     );
 }
+
+#[test]
+fn test_ci_workflow_detached_head_normalization() {
+    let ci_yaml = std::fs::read_to_string(".forgejo/workflows/ci.yml").expect("ci.yml must exist");
+    assert!(
+        ci_yaml.contains("git checkout -B"),
+        "CI workflow must normalize detached HEAD before invoking cccp check"
+    );
+}
